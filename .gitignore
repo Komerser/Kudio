@@ -1,0 +1,12 @@
+data/
+settings.json
+dist/
+build/
+release/
+__pycache__/
+*.py[cod]
+*.log
+.venv/
+.env
+.DS_Store
+Thumbs.db

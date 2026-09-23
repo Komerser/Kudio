@@ -1,0 +1,2 @@
+/* Step links work even before a work has been selected. */
+document.querySelectorAll('.workflow-nav a').forEach(link=>link.addEventListener('click',event=>{event.preventDefault();const target=document.querySelector(link.getAttribute('href'));if(!target||target.closest('.hidden')){if(link.getAttribute('href')==='#importCard')$('new').click();else{notify('先选择或创建一本有声书，再继续这个步骤');return}}target?.scrollIntoView({behavior:'smooth',block:'start'});document.querySelectorAll('.workflow-nav a').forEach(item=>item.classList.toggle('active',item===link))}));

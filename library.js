@@ -1,0 +1,7 @@
+let trashedBooks=[];
+function renderTrash(items){trashedBooks=items;const selected=$('trashProjects').value;$('trashProjects').replaceChildren(new Option('选择要恢复或清理的作品',''));items.forEach(p=>$('trashProjects').add(new Option(`${p.title} · ${p.count} 个片段`,p.id)));$('trashProjects').value=items.some(p=>p.id===selected)?selected:'';$('trashSummary').textContent=`作品回收站 (${items.length})`;updateTrashButtons()}
+function updateTrashButtons(){const empty=!$('trashProjects').value;$('restoreBook').disabled=empty;$('purgeBook').disabled=empty;$('deleteBook').disabled=!project||active===project.id}
+$('trashProjects').onchange=updateTrashButtons;
+$('deleteBook').onclick=async()=>{if(!project)return;const owner=project.id,title=project.title;if(!confirm(`将作品“${title}”及其音频、导出文件移入Kudio 回收站？\n可在回收站恢复，暂不释放磁盘空间。`))return;await api('delete-project',{id:owner});if(project?.id===owner){stopPlayback();voiceDrafts.delete(owner);localStorage.removeItem('audiobookProject');await load('')}await list();notify('作品已移入回收站')};
+$('restoreBook').onclick=async()=>{const id=$('trashProjects').value;if(!id)return;await api('restore-project',{id});await list();await load(id);notify('作品及音频已恢复')};
+$('purgeBook').onclick=async()=>{const p=trashedBooks.find(p=>p.id===$('trashProjects').value);if(!p)return;const title=prompt(`永久删除“${p.title}”的全部作品文件，无法恢复。\n请输入完整作品名称确认：`, '');if(title===null)return;if(title!==p.title)throw Error('作品名不匹配，未删除');await api('purge-project',{id:p.id,title});await list();notify('作品文件已永久删除，空间已释放')};
