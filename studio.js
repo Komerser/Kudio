@@ -57,7 +57,6 @@ async function submitSegment(regenerate){if(!editing)return;const target={...edi
 $('segmentEditForm').onsubmit=e=>{e.preventDefault();return safe(()=>submitSegment(true))};$('saveSegmentEdit').onclick=()=>safe(()=>submitSegment(false));
 async function reveal(path){if(!path)throw Error('路径尚未准备好');await api('open-path',{path})}
 $('openBook').onclick=()=>safe(()=>{if(project)return reveal(project.folder)});$('openData').onclick=()=>safe(()=>reveal(monitorPaths.data));$('openEngine').onclick=()=>safe(()=>reveal(monitorPaths.engine));
-for(const id of ['reference','gpt','sovits']){const b=button('在文件管理器中定位',()=>reveal($(id).value));b.type='button';$(id).after(b)}
 async function monitor(){if(exited||terminating)return;try{const data=await api('monitor');monitorPaths=data.paths;$('engineStage').textContent=data.stage;$('trainingStatus').textContent=data.training_online?'官方训练面板在线':(data.training_running?'训练面板正在加载':'训练面板未连接');for(const [id,text] of [['engineLog',data.engine_log],['trainingLog',data.training_log]]){const node=$(id),bottom=node.scrollTop+node.clientHeight>=node.scrollHeight-20;if(node.textContent!==text){node.textContent=text||'暂无日志';if(bottom)node.scrollTop=node.scrollHeight}}}catch(e){$('engineStage').textContent='工作台未连接'}}
 $('monitorRefresh').onclick=()=>safe(monitor);$('trainLaunch').onclick=()=>safe(async()=>{notify((await api('training',{})).message);await monitor()});
 setInterval(()=>{if($('enginePanel').open)monitor()},4000);monitor();

@@ -1,5 +1,6 @@
 """Local audiobook workstation. Python 3.9+, standard library only."""
 import copy
+import base64
 import io
 import json
 import os
@@ -22,13 +23,31 @@ from urllib.parse import urlparse, parse_qs, urlencode
 
 ROOT = Path(__file__).resolve().parent
 DATA = ROOT / 'data'
-def discover_engine(root):
+
+
+def read_settings(root=ROOT):
     config = root / 'settings.json'
-    if config.is_file():
-        value = json.loads(config.read_text(encoding='utf-8-sig')).get('engine_root', '')
-        if value:
-            path = Path(value).expanduser()
-            return (path if path.is_absolute() else root / path).resolve()
+    if not config.is_file():
+        return {}
+    settings = json.loads(config.read_text(encoding='utf-8-sig'))
+    if not isinstance(settings, dict):
+        raise ValueError('settings.json 必须是配置对象')
+    return settings
+
+
+def setting_path(value, root=ROOT):
+    if not value:
+        return ''
+    if not isinstance(value, str):
+        raise ValueError('配置路径必须是文字')
+    path = Path(value).expanduser()
+    return str((path if path.is_absolute() else root / path).resolve())
+
+
+def discover_engine(root):
+    value = read_settings(root).get('engine_root', '')
+    if value:
+        return Path(setting_path(value, root))
     candidates = sorted(p for p in root.parent.iterdir() if p.is_dir() and
                         (p / 'api_v2.py').is_file() and (p / 'runtime/python.exe').is_file())
     if len(candidates) == 1:
@@ -44,6 +63,290 @@ STOP = threading.Event()
 PROCESS = None
 LIFECYCLE = ''
 TRAINING_PROCESS = None
+
+ASSET_KINDS = {'gpt': '.ckpt', 'sovits': '.pth',
+               'reference': ('.wav', '.mp3', '.flac')}
+ROOT_FIELDS = ('engine_root', 'model_root', 'reference_root')
+SKIP_ASSET_DIRS = {'runtime', 'temp', 'tmp', 'pretrained', 'pretrained_models',
+                   'logs', 'log', 'cache', '__pycache__', '.git', 'venv', 'dist'}
+MAX_ASSET_DEPTH = 9
+MAX_SCAN_ENTRIES = 4000
+MAX_CANDIDATES = 300
+
+
+def asset_roots():
+    settings = read_settings()
+    roots = {field: setting_path(settings.get(field, '')) for field in ROOT_FIELDS}
+    roots['engine_root'] = roots['engine_root'] or str(ENGINE)
+    if 'model_root' not in settings:
+        local_models = ROOT.parent / 'model'
+        if local_models.is_dir():
+            roots['model_root'] = str(local_models.resolve())
+    return roots
+
+
+def engine_restart_required(roots):
+    return os.path.normcase(roots['engine_root']) != os.path.normcase(str(ENGINE))
+
+
+def validate_asset_root(field, value):
+    if not isinstance(value, str):
+        raise ValueError('目录路径必须是文字：' + field)
+    value = value.strip()
+    if not value:
+        if field == 'engine_root':
+            raise ValueError('请选择 GPT-SoVITS 整合包目录')
+        return ''
+    path = Path(value).expanduser()
+    if not path.is_absolute() or not path.is_dir():
+        raise ValueError('请选择存在的本机绝对目录：' + field)
+    path = path.resolve()
+    if field == 'engine_root' and not ((path / 'api_v2.py').is_file() and
+                                        (path / 'runtime' / 'python.exe').is_file()):
+        raise ValueError('GPT-SoVITS 目录需要包含 api_v2.py 和 runtime/python.exe')
+    return str(path)
+
+
+def save_asset_roots(values):
+    if not isinstance(values, dict) or not any(field in values for field in ROOT_FIELDS):
+        raise ValueError('请提供要保存的素材目录')
+    settings = read_settings()
+    for field in ROOT_FIELDS:
+        if field in values:
+            settings[field] = validate_asset_root(field, values[field])
+    temp = ROOT / ('settings.' + uuid.uuid4().hex + '.tmp')
+    try:
+        temp.write_text(json.dumps(settings, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+        os.replace(str(temp), str(ROOT / 'settings.json'))
+    finally:
+        temp.unlink(missing_ok=True)
+    roots = asset_roots()
+    return {'roots': roots, 'restart_required': engine_restart_required(roots)}
+
+
+def is_link_or_reparse(path):
+    try:
+        info = path.lstat()
+        return path.is_symlink() or bool(getattr(info, 'st_file_attributes', 0) & 0x400)
+    except OSError:
+        return True
+
+
+def asset_group(root, path, fallback):
+    if fallback:
+        return fallback
+    generic = {'model', 'models', 'weights', 'reference_audio',
+               'reference_audios', '参考音频', '音频'}
+    for name in path.relative_to(root).parts[:-1]:
+        if name.casefold() not in generic and not re.fullmatch(r'v\d+(?:pro)?', name, re.IGNORECASE):
+            return name
+    folder = root
+    while (folder.name.casefold() in generic or re.fullmatch(r'v\d+(?:pro)?', folder.name, re.IGNORECASE)) and folder != folder.parent:
+        folder = folder.parent
+    return folder.name
+
+
+def asset_key(kind, path):
+    stem = path.stem
+    if kind in ('gpt', 'sovits'):
+        stem = re.sub(r'[-_]e\d+(?:[-_]s\d+)?(?:[-_].*)?$', '', stem,
+                      flags=re.IGNORECASE) or path.stem
+    return stem.casefold()
+
+
+def scan_asset_folder(root, allowed, group, candidates, seen):
+    """Walk one chosen material folder with fixed limits; never follow links."""
+    if not root.is_dir() or is_link_or_reparse(root):
+        return False
+    stack = [(root, 0)]
+    entries = 0
+    truncated = False
+    while stack:
+        folder, depth = stack.pop()
+        try:
+            with os.scandir(folder) as listing:
+                for entry in listing:
+                    entries += 1
+                    if entries > MAX_SCAN_ENTRIES:
+                        return True
+                    path = Path(entry.path)
+                    if is_link_or_reparse(path):
+                        continue
+                    if entry.is_dir(follow_symlinks=False):
+                        name = entry.name.casefold()
+                        if name in SKIP_ASSET_DIRS or name.startswith(('pretrained', 'runtime', 'temp')):
+                            continue
+                        if depth < MAX_ASSET_DEPTH:
+                            stack.append((path, depth + 1))
+                        else:
+                            truncated = True
+                    elif entry.is_file(follow_symlinks=False):
+                        extension = path.suffix.casefold()
+                        kind = next((name for name, suffixes in allowed.items()
+                                     if extension in suffixes), None)
+                        if kind is None:
+                            continue
+                        resolved = path.resolve()
+                        key = os.path.normcase(str(resolved))
+                        if key in seen[kind]:
+                            continue
+                        seen[kind].add(key)
+                        if len(candidates[kind]) >= MAX_CANDIDATES:
+                            truncated = True
+                            continue
+                        candidates[kind].append({'path': str(resolved),
+                            'label': str(path.relative_to(root)),
+                            'group': asset_group(root, path, group),
+                            'key': asset_key(kind, path)})
+        except OSError:
+            truncated = True
+    return truncated
+
+
+def asset_catalog():
+    roots = asset_roots()
+    candidates = {kind: [] for kind in ASSET_KINDS}
+    seen = {kind: set() for kind in ASSET_KINDS}
+    truncated = False
+    model_root = roots['model_root']
+    if model_root and os.path.normcase(model_root) != os.path.normcase(roots['engine_root']):
+        truncated |= scan_asset_folder(Path(model_root),
+            {'gpt': ('.ckpt',), 'sovits': ('.pth',),
+             'reference': ASSET_KINDS['reference']}, None, candidates, seen)
+    reference_root = roots['reference_root']
+    if reference_root:
+        truncated |= scan_asset_folder(Path(reference_root),
+            {'reference': ASSET_KINDS['reference']}, None, candidates, seen)
+    engine_root = Path(roots['engine_root'])
+    for parent in (engine_root, engine_root / 'GPT_SoVITS'):
+        if not parent.is_dir() or is_link_or_reparse(parent):
+            continue
+        try:
+            with os.scandir(parent) as listing:
+                for index, entry in enumerate(listing):
+                    if index >= 200:
+                        truncated = True
+                        break
+                    path = Path(entry.path)
+                    if not entry.is_dir(follow_symlinks=False) or is_link_or_reparse(path):
+                        continue
+                    name = entry.name.casefold()
+                    if name.startswith('gpt_weights'):
+                        allowed = {'gpt': ('.ckpt',)}
+                    elif name.startswith('sovits_weights'):
+                        allowed = {'sovits': ('.pth',)}
+                    else:
+                        continue
+                    truncated |= scan_asset_folder(path, allowed,
+                        'GPT-SoVITS · ' + entry.name, candidates, seen)
+        except OSError:
+            truncated = True
+    for items in candidates.values():
+        items.sort(key=lambda item: (item['group'].casefold(), item['label'].casefold()))
+    return {'roots': roots, 'active_engine': str(ENGINE),
+            'restart_required': engine_restart_required(roots),
+            'candidates': candidates, 'truncated': bool(truncated)}
+
+
+PICK_PATH_SCRIPT = r'''
+$ErrorActionPreference = 'Stop'
+Add-Type -AssemblyName System.Windows.Forms
+$kind = $env:KUDIO_PICK_KIND
+$initial = $env:KUDIO_PICK_INITIAL
+$owner = New-Object System.Windows.Forms.Form
+$owner.ShowInTaskbar = $false
+$owner.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::None
+$owner.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen
+$owner.Width = 1
+$owner.Height = 1
+$owner.Opacity = 0
+$owner.TopMost = $true
+$owner.Show()
+try {
+if ($kind -in @('engine_root', 'model_root', 'reference_root')) {
+    $picker = New-Object System.Windows.Forms.FolderBrowserDialog
+    $picker.ShowNewFolderButton = $false
+    $picker.Description = '选择 Kudio 使用的本机文件夹'
+    if ($initial -and (Test-Path -LiteralPath $initial -PathType Container)) {
+        $picker.SelectedPath = $initial
+    }
+    try {
+        if ($picker.ShowDialog($owner) -eq [System.Windows.Forms.DialogResult]::OK) {
+            [Console]::Out.Write([Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($picker.SelectedPath)))
+        }
+    } finally { $picker.Dispose() }
+} else {
+    $picker = New-Object System.Windows.Forms.OpenFileDialog
+    $picker.CheckFileExists = $true
+    $picker.Multiselect = $false
+    if ($kind -eq 'gpt') { $picker.Filter = 'GPT 模型 (*.ckpt)|*.ckpt' }
+    elseif ($kind -eq 'sovits') { $picker.Filter = 'SoVITS 模型 (*.pth)|*.pth' }
+    else { $picker.Filter = '参考音频 (*.wav;*.mp3;*.flac)|*.wav;*.mp3;*.flac' }
+    if ($initial -and (Test-Path -LiteralPath $initial)) {
+        if (Test-Path -LiteralPath $initial -PathType Container) {
+            $picker.InitialDirectory = $initial
+        } else {
+            $picker.InitialDirectory = Split-Path -Parent $initial
+            $picker.FileName = Split-Path -Leaf $initial
+        }
+    }
+    try {
+        if ($picker.ShowDialog($owner) -eq [System.Windows.Forms.DialogResult]::OK) {
+            [Console]::Out.Write([Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($picker.FileName)))
+        }
+    } finally { $picker.Dispose() }
+}
+} finally {
+    $owner.Close()
+    $owner.Dispose()
+}
+'''
+
+
+def pick_local_path(kind, initial=''):
+    if kind not in ASSET_KINDS and kind not in ROOT_FIELDS:
+        raise ValueError('未知的文件或目录类型')
+    if os.name != 'nt':
+        raise ValueError('本机选择窗口仅支持 Windows')
+    if not isinstance(initial, str):
+        raise ValueError('初始路径无效')
+    if not initial:
+        roots = asset_roots()
+        initial = {
+            'gpt': roots['model_root'] or roots['engine_root'],
+            'sovits': roots['model_root'] or roots['engine_root'],
+            'reference': roots['reference_root'] or roots['model_root'],
+            'engine_root': roots['engine_root'],
+            'model_root': roots['model_root'] or roots['engine_root'],
+            'reference_root': roots['reference_root'] or roots['model_root'],
+        }[kind]
+    env = dict(os.environ)
+    env['KUDIO_PICK_KIND'] = kind
+    env['KUDIO_PICK_INITIAL'] = initial
+    command = base64.b64encode(PICK_PATH_SCRIPT.encode('utf-16le')).decode('ascii')
+    powershell = Path(os.environ.get('SystemRoot', r'C:\Windows')) / 'System32' / 'WindowsPowerShell' / 'v1.0' / 'powershell.exe'
+    if not powershell.is_file():
+        raise RuntimeError('未找到 Windows PowerShell，无法打开本机选择窗口')
+    result = subprocess.run([str(powershell), '-NoProfile', '-STA', '-EncodedCommand', command],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf-8', errors='replace',
+        env=env, creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+    if result.returncode:
+        raise RuntimeError('无法打开本机选择窗口：' + result.stderr[-500:])
+    encoded = result.stdout.lstrip('\ufeff').strip()
+    if not encoded:
+        return {'path': '', 'cancelled': True}
+    selected = base64.b64decode(encoded, validate=True).decode('utf-16le')
+    if kind in ROOT_FIELDS:
+        selected = validate_asset_root(kind, selected)
+    else:
+        path = Path(selected)
+        extensions = ASSET_KINDS[kind]
+        if isinstance(extensions, str):
+            extensions = (extensions,)
+        if not path.is_file() or path.suffix.casefold() not in extensions:
+            raise ValueError('请选择对应格式的本机文件')
+        selected = str(path.resolve())
+    return {'path': selected, 'cancelled': False}
 
 
 def tail_log(path, size=18000):
@@ -626,6 +929,9 @@ class Handler(BaseHTTPRequestHandler):
         u = urlparse(self.path)
         q = parse_qs(u.query)
         try:
+            if u.path == '/api/assets':
+                self.reply(asset_catalog())
+                return
             with LOCK:
                 if u.path == '/api/presets':
                     self.reply({'presets': read_presets()})
@@ -674,7 +980,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if u.path == '/':
                 path, mime = ROOT / 'index.html', 'text/html; charset=utf-8'
-            elif u.path in ('/studio.js', '/segmentation.js', '/library.js', '/kudio.js', '/studio.css'):
+            elif u.path in ('/studio.js', '/segmentation.js', '/library.js', '/kudio.js', '/assets.js', '/studio.css'):
                 path, mime = ROOT / u.path[1:], ('text/javascript; charset=utf-8' if u.path.endswith('.js') else 'text/css; charset=utf-8')
             elif u.path == '/audio':
                 pid, sid = q['id'][0], q['segment'][0]
@@ -713,6 +1019,12 @@ class Handler(BaseHTTPRequestHandler):
                 raise ValueError('请求过大或为空')
             d = json.loads(self.rfile.read(size))
             action = self.path
+            if action == '/api/pick-path':
+                with LOCK:
+                    if LIFECYCLE:
+                        raise ValueError('正在停止或退出，请等待当前操作完成')
+                self.reply(pick_local_path(d.get('kind'), d.get('initial', '')))
+                return
             if action in ('/api/engine-stop', '/api/exit'):
                 with LOCK:
                     if LIFECYCLE:
@@ -736,6 +1048,8 @@ class Handler(BaseHTTPRequestHandler):
             with LOCK:
                 if LIFECYCLE:
                     raise ValueError('正在停止或退出，请等待当前操作完成')
+                if action == '/api/asset-roots':
+                    self.reply(save_asset_roots(d)); return
                 if action in ('/api/delete-project', '/api/restore-project', '/api/purge-project'):
                     manage_project(d['id'], action[5:], d.get('title'))
                     self.reply({'ok': True}); return

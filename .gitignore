@@ -1,12 +1,33 @@
-data/
-settings.json
-dist/
-build/
-release/
+# Runtime data, local engine configuration, and release outputs
+/data/
+/settings.json
+/dist/
+/build/
+/release/
+
+# Python runtime and temporary files
 __pycache__/
 *.py[cod]
 *.log
+*.pid
+*.tmp
+*.temp
+*.bak
 .venv/
 .env
+
+# Test and tooling outputs
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+test-results/
+playwright-report/
+_kudio_stage/
+_kudio_preview_data/
+
+# Operating system metadata
 .DS_Store
 Thumbs.db

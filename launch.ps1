@@ -3,9 +3,12 @@ $ErrorActionPreference = 'Stop'
 try {
     $studioRoot = $PSScriptRoot
     $settingsFile = Join-Path $studioRoot 'settings.json'
+    $settings = [pscustomobject]@{}
     $engineRoot = ''
     if (Test-Path -LiteralPath $settingsFile) {
-        $engineRoot = (Get-Content -LiteralPath $settingsFile -Raw -Encoding UTF8 | ConvertFrom-Json).engine_root
+        $settings = Get-Content -LiteralPath $settingsFile -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($null -eq $settings) { $settings = [pscustomobject]@{} }
+        $engineRoot = $settings.engine_root
         if ($engineRoot -and -not [IO.Path]::IsPathRooted($engineRoot)) { $engineRoot = Join-Path $studioRoot $engineRoot }
     }
     if (-not $engineRoot) {
@@ -35,7 +38,8 @@ try {
         } finally { $picker.Dispose() }
     }
     if (-not (Test-Engine $engineRoot)) { throw '目录不正确：需要 api_v2.py 和 runtime\python.exe。请选择 Windows GPT-SoVITS 整合包根目录。' }
-    @{engine_root=$engineRoot} | ConvertTo-Json | Set-Content -LiteralPath $settingsFile -Encoding UTF8
+    $settings | Add-Member -NotePropertyName engine_root -NotePropertyValue $engineRoot -Force
+    $settings | ConvertTo-Json -Depth 16 | Set-Content -LiteralPath $settingsFile -Encoding UTF8
     if ($Configure) { Write-Output '配置已保存。请先退出已运行的工坊，再双击启动。'; exit 0 }
     Set-Location -LiteralPath $studioRoot
     & (Join-Path $engineRoot 'runtime\python.exe') -I (Join-Path $studioRoot 'app.py')
