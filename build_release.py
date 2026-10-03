@@ -6,8 +6,10 @@ import zipfile
 ROOT = Path(__file__).resolve().parent
 VERSION = (ROOT / 'VERSION.txt').read_text(encoding='utf-8').strip()
 FILES = ['app.py', 'engine_runner.py', 'training_runner.py', 'index.html',
-         'studio.js', 'segmentation.js', 'library.js', 'kudio.js', 'assets.js', 'studio.css', 'launch.ps1',
-         '启动Kudio.bat', '配置引擎.bat', '使用说明.txt', 'VERSION.txt']
+         'studio.js', 'pcs-editor.js', 'segmentation.js', 'library.js', 'kudio.js', 'assets.js', 'studio.css', 'launch.ps1',
+         '启动Kudio.bat', '配置引擎.bat', '使用说明.txt', 'VERSION.txt', 'README.md', 'docs/PCS_KSON.md']
+FILES += ['kudio/' + name for name in ('__init__.py', 'server.py', 'projects.py', 'models.py',
+          'pcs.py', 'compiler.py', 'text.py', 'tts.py', 'timeline.py', 'exporters.py')]
 
 def build():
     folder = ROOT / 'dist'

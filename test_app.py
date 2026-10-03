@@ -8,10 +8,11 @@ import threading
 import time
 from unittest.mock import Mock, patch
 from pathlib import Path
+import sys
 
-spec = importlib.util.spec_from_file_location('workstation', Path(__file__).with_name('app.py'))
-a = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(a)
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from kudio import server as a
 
 
 def wav():
@@ -180,7 +181,11 @@ class WorkstationTests(unittest.TestCase):
 
     def test_timeline_marks_unknown_prefix_and_includes_gaps(self):
         p = self.project()
-        for s in p['segments']: s.update(status='done', duration=2)
+        for s in p['segments']:
+            s.update(status='done', duration=999)
+            with wave.open(str(a.project_dir(p['id']) / (s['id'] + '.wav')), 'wb') as f:
+                f.setnchannels(1); f.setsampwidth(2); f.setframerate(24000)
+                f.writeframes(b'\0\0' * 48000)
         view = a.project_view(p)
         self.assertEqual(view['segments'][1]['timeline']['start'], 2.3)
         self.assertFalse(view['timeline_estimated'])
@@ -277,8 +282,9 @@ class WorkstationTests(unittest.TestCase):
             req = a.Request('http://127.0.0.1:%s/api/export-all' % server.server_port,
                             data=a.json.dumps({'id': p['id']}).encode(), headers={'Content-Type': 'application/json'})
             with a.urlopen(req) as response: result = a.json.load(response)
-            self.assertEqual(len(result['exports']), 2)
+            self.assertEqual(len(result['exports']), 3)
             self.assertTrue(result['exports'][1].endswith('.srt'))
+            self.assertTrue(result['exports'][2].endswith('.kson'))
             with wave.open(str(a.project_dir(p['id']) / 'exports' / result['exports'][0])) as f:
                 self.assertAlmostEqual(f.getnframes()/f.getframerate(), len(p['segments'])*.1+(len(p['segments'])-1)*p['voice']['gap'])
             self.assertFalse(a.read(p['id']).get('groups'))

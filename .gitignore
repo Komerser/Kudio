@@ -27,6 +27,7 @@ test-results/
 playwright-report/
 _kudio_stage/
 _kudio_preview_data/
+.github-sync/
 
 # Operating system metadata
 .DS_Store
