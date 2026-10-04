@@ -10,6 +10,8 @@ from pathlib import Path
 import math
 import re
 import wave
+from .tts import effective_voice
+from .roles import resolved_role
 
 
 DEFAULT_AUDIO_FORMAT = (1, 2, 24000)
@@ -113,7 +115,7 @@ def _selected_plan(project, members):
     # and excluded narration belong to the surrounding book, not this export.
     preceding = {}
     for index, item in enumerate(plan[:first]):
-        if item.get('kind') == 'event' and item.get('type') in ('page', 'rate', 'section'):
+        if item.get('kind') == 'event' and item.get('type') in ('page', 'rate', 'section', 'voice'):
             preceding[item['type']] = (index, item)
     opening = [dict(item, inherited=True) for unused, item in
                sorted(preceding.values(), key=lambda pair: pair[0])]
@@ -159,7 +161,7 @@ def build_timeline(project, audio_dir, exact=False, members=None, format_audio=N
     base_rate = _number(project.get('voice', {}).get('speed', 1), '语速', .5)
     if base_rate > 2:
         raise ValueError('语速应为 0.5–2')
-    state = {'page': None, 'section': None, 'rate': base_rate}
+    state = {'page': None, 'section': None, 'rate': base_rate, 'voice_label': None}
     cursor = 0
     known_prefix = True
     had_speech, explicit_pause = False, False
@@ -195,7 +197,7 @@ def build_timeline(project, audio_dir, exact=False, members=None, format_audio=N
                 event['duration_ms'] = event['end_ms'] - event['start_ms']
                 event['requested_duration_ms'] = int(duration)
                 explicit_pause = True
-            elif kind in ('page', 'rate', 'section'):
+            elif kind in ('page', 'rate', 'section', 'voice'):
                 event['time_ms'] = milliseconds(cursor)
                 if kind == 'page':
                     value = item.get('page', item.get('value'))
@@ -207,11 +209,16 @@ def build_timeline(project, audio_dir, exact=False, members=None, format_audio=N
                     if value > 2:
                         raise ValueError('语速应为 0.5–2')
                     event['value'], state['rate'] = value, value
-                else:
+                elif kind == 'section':
                     value = item.get('name', item.get('section', item.get('value')))
                     if not isinstance(value, str) or not value.strip() or len(value.strip()) > 80:
                         raise ValueError('章节名应为 1–80 字')
                     event['name'], state['section'] = value.strip(), value.strip()
+                else:
+                    value = item.get('label', item.get('value'))
+                    if not isinstance(value, str) or not value.strip() or len(value.strip()) > 80:
+                        raise ValueError('声音标签应为 1–80 字')
+                    event['label'], state['voice_label'] = value.strip(), value.strip()
             else:
                 raise ValueError('未知时间轴控制事件：' + str(kind))
             events.append(event)
@@ -221,9 +228,7 @@ def build_timeline(project, audio_dir, exact=False, members=None, format_audio=N
         segment = available[sid]
         if had_speech and not explicit_pause and gap_frames:
             silence(gap_frames, 'gap')
-        speech_rate = segment.get('rate')
-        if speech_rate is None:
-            speech_rate = (segment.get('overrides') or {}).get('speed', base_rate)
+        speech_rate = effective_voice(segment, project)['speed']
         speech_rate = _number(speech_rate, '语速', .5)
         if speech_rate > 2:
             raise ValueError('语速应为 0.5–2')
@@ -262,6 +267,13 @@ def build_timeline(project, audio_dir, exact=False, members=None, format_audio=N
                   'page': segment.get('page', state['page']),
                   'section': segment.get('section', state['section']),
                   'speech': {'rate': speech_rate}, 'estimated': not known_prefix}
+        if segment.get('voice_label'):
+            record['voice_label'] = segment['voice_label']
+        role_id, role = resolved_role(segment, project)
+        if role_id:
+            record['role_id'] = role_id
+            if role:
+                record['role_name'] = role['name']
         for field in ('source_start', 'source_end'):
             if field in segment:
                 record[field] = segment[field]

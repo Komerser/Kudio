@@ -8,7 +8,7 @@ import math
 import re
 
 
-COMMANDS = ('p', 'pause', 'rate', 'section')
+COMMANDS = ('p', 'pause', 'rate', 'section', 'voice')
 PCS_VERSION = '0.1'
 
 
@@ -169,6 +169,11 @@ def validate_ast(ast, source):
                 code, message = 'PCS_INVALID_SECTION', '章节名称必须是 1–80 个字符'
             else:
                 node['value'] = raw
+        elif command == 'voice':
+            if not raw or len(raw) > 80 or any(ord(char) < 32 for char in raw):
+                code, message = 'PCS_INVALID_VOICE', '声音标签必须是 1–80 个字符，不包含换行或控制字符'
+            else:
+                node['value'] = raw
         if code:
             node['valid'] = False
             diagnostics.append(_diagnostic(source, code, message, **_span_args(node)))
@@ -186,7 +191,7 @@ def parse_source(text, source_format='txt'):
         return {'source_format': 'txt', 'ast': ast, 'diagnostics': [], 'valid': True,
                 'stats': {'text_nodes': len(ast), 'control_nodes': 0, 'errors': 0,
                           'warnings': 0, 'info': 0, 'characters': len(text),
-                          'pages': 0, 'pauses': 0, 'rates': 0, 'sections': 0}}
+                          'pages': 0, 'pauses': 0, 'rates': 0, 'sections': 0, 'voices': 0}}
     lexed = lex_source(text)
     parsed = parse_tokens(lexed['tokens'], text)
     ast = parsed['ast']
@@ -213,7 +218,7 @@ def parse_source(text, source_format='txt'):
              'warnings': sum(d['level'] == 'warning' for d in diagnostics),
              'info': sum(d['level'] == 'info' for d in diagnostics),
              'characters': len(text)}
-    for command, key in (('p', 'pages'), ('pause', 'pauses'), ('rate', 'rates'), ('section', 'sections')):
+    for command, key in (('p', 'pages'), ('pause', 'pauses'), ('rate', 'rates'), ('section', 'sections'), ('voice', 'voices')):
         stats[key] = sum(n['type'] == 'control' and n['command'] == command and n['valid'] for n in ast)
     return {'source_format': source_format, 'ast': ast,
             'diagnostics': diagnostics, 'stats': stats, 'valid': stats['errors'] == 0}

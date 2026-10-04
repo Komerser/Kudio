@@ -179,6 +179,35 @@ class WorkstationTests(unittest.TestCase):
                 a.save_preset(a.defaults(), a.read_presets()[0]['id'])
         self.assertEqual((a.DATA / 'voice_presets.json').read_bytes(), before)
 
+    def test_native_picker_remembers_each_kind_and_cancel_preserves_history(self):
+        audio = a.DATA / '参考音频.wav'
+        audio.write_bytes(wav())
+        result = Mock(returncode=0, stdout=a.base64.b64encode(str(audio).encode('utf-16le')).decode('ascii'), stderr='')
+        with patch.object(a.subprocess, 'run', return_value=result) as run:
+            selected = a.pick_local_path('reference', str(a.DATA))
+            self.assertEqual(selected['path'], str(audio.resolve()))
+            self.assertFalse(selected['cancelled'])
+            self.assertEqual(run.call_args.kwargs['env']['KUDIO_PICK_INITIAL'], str(a.DATA))
+            a.pick_local_path('reference', str(a.DATA / 'different'))
+            self.assertEqual(run.call_args.kwargs['env']['KUDIO_PICK_INITIAL'], str(a.DATA))
+            history = (a.DATA / 'path_history.json').read_bytes()
+            result.stdout = ''
+            self.assertTrue(a.pick_local_path('gpt', str(a.DATA / 'models'))['cancelled'])
+            self.assertEqual(run.call_args.kwargs['env']['KUDIO_PICK_INITIAL'], str(a.DATA / 'models'))
+            self.assertEqual((a.DATA / 'path_history.json').read_bytes(), history)
+            a.pick_local_path('gpt', str(a.DATA / 'models'), 'en')
+            self.assertEqual(run.call_args.kwargs['env']['KUDIO_PICK_TITLE'], 'Select a local file for Kudio')
+            self.assertEqual(run.call_args.kwargs['env']['KUDIO_PICK_FILTER'], 'GPT models (*.ckpt)|*.ckpt')
+            a.pick_local_path('reference', str(a.DATA), 'ja')
+            self.assertEqual(run.call_args.kwargs['env']['KUDIO_PICK_TITLE'], 'Kudio で使用するファイルを選択')
+            self.assertEqual(run.call_args.kwargs['env']['KUDIO_PICK_FILTER'], '参照音声 (*.wav;*.mp3;*.flac)|*.wav;*.mp3;*.flac')
+            a.pick_local_path('gpt', str(a.DATA), 'unsupported')
+            self.assertEqual(run.call_args.kwargs['env']['KUDIO_PICK_FILTER'], 'GPT 模型 (*.ckpt)|*.ckpt')
+        self.assertNotIn('FolderBrowserDialog', a.PICK_PATH_SCRIPT)
+        self.assertIn('IFileDialog', a.PICK_PATH_SCRIPT)
+        with self.assertRaises(ValueError):
+            a.pick_local_path('invalid')
+
     def test_timeline_marks_unknown_prefix_and_includes_gaps(self):
         p = self.project()
         for s in p['segments']:

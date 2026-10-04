@@ -23,12 +23,14 @@ def segment_fingerprint(segment, voice=None):
             'payload': build_tts_payload(segment, voice),
             'allow_control_literals': segment.get('allow_control_literals', False),
             'literal_controls': segment.get('literal_controls', [])}
+    if segment.get('voice_label'):
+        data['voice_label'] = segment['voice_label']
     encoded = json.dumps(data, ensure_ascii=False, sort_keys=True, separators=(',', ':'), allow_nan=False)
     return hashlib.sha256(encoded.encode('utf-8')).hexdigest()
 
 
 def _semantic_key(segment):
-    data = {key: segment.get(key) for key in ('text', 'page', 'section', 'rate')}
+    data = {key: segment.get(key) for key in ('text', 'page', 'section', 'rate', 'voice_label')}
     data['literal_controls'] = segment.get('literal_controls', [])
     data['allow_control_literals'] = segment.get('allow_control_literals', False)
     return json.dumps(data, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
@@ -79,7 +81,7 @@ def compile_source(text, limit=160, voice=None, previous_segments=None, source_f
     if not parsed['valid']:
         return result
     segments, ordering = [], []
-    page, section, rate, chapter = None, None, None, '正文'
+    page, section, rate, chapter, voice_label = None, None, None, '正文', None
     for node in parsed['ast']:
         if node['type'] == 'control':
             event = {'kind': 'event', 'id': uuid.uuid4().hex,
@@ -96,6 +98,9 @@ def compile_source(text, limit=160, voice=None, previous_segments=None, source_f
             elif command == 'section':
                 section = value
                 event.update(type='section', name=section)
+            elif command == 'voice':
+                voice_label = value
+                event.update(type='voice', label=voice_label)
             ordering.append(event)
             continue
         raw = text[node['source_start']:node['source_end']]
@@ -112,7 +117,7 @@ def compile_source(text, limit=160, voice=None, previous_segments=None, source_f
                 segment['chapter'] = chapter
             else:
                 chapter = segment['chapter']
-            segment.update(page=page, section=section, rate=rate, source_format=parsed['source_format'],
+            segment.update(page=page, section=section, rate=rate, voice_label=voice_label, source_format=parsed['source_format'],
                            source_start=mapping[start][0], source_end=mapping[end - 1][1],
                            overrides={}, audio_version=None)
             escaped = []

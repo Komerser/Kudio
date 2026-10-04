@@ -121,7 +121,8 @@ class PCSParserTests(unittest.TestCase):
             '#[rate:inf]#': 'PCS_INVALID_RATE', '#[rate:0.49]#': 'PCS_INVALID_RATE',
             '#[section: ]#': 'PCS_INVALID_SECTION', '#[section:' + 'a' * 81 + ']#': 'PCS_INVALID_SECTION',
             '#[abc:123]#': 'PCS_UNKNOWN_COMMAND', '#[xxx:1]#': 'PCS_UNKNOWN_COMMAND',
-            '#[voice:narrator]#': 'PCS_UNKNOWN_COMMAND', '#[p=1]#': 'PCS_INVALID_SYNTAX',
+            '#[voice:]#': 'PCS_INVALID_VOICE', '#[voice:' + 'a' * 81 + ']#': 'PCS_INVALID_VOICE',
+            '#[voice:bad\nlabel]#': 'PCS_INVALID_VOICE', '#[p=1]#': 'PCS_INVALID_SYNTAX',
             '#[p:1': 'PCS_UNCLOSED_TAG', '#[p:#[rate:1]#]#': 'PCS_NESTED_TAG',
         }
         for source, code in inputs.items():
@@ -174,6 +175,20 @@ class PCSParserTests(unittest.TestCase):
 
 
 class PCSCompilerTests(unittest.TestCase):
+    def test_voice_labels_form_boundaries_and_persist_without_spoken_controls(self):
+        result = compile_pcs('默认。#[voice:male_elder]#你好。\n继续。#[voice:female_child]#再见。')
+        self.assertTrue(result['valid'])
+        self.assertEqual([segment['voice_label'] for segment in result['segments']],
+                         [None, 'male_elder', 'male_elder', 'female_child'])
+        self.assertEqual([event['label'] for event in result['execution_plan'] if event['kind'] == 'event'],
+                         ['male_elder', 'female_child'])
+        self.assertEqual(result['stats']['voices'], 2)
+        for segment in result['segments']:
+            self.assertNotIn('#[', build_tts_payload(segment, {})['text'])
+        literal = compile_source('#[voice:male_elder]#你好。')
+        self.assertIsNone(literal['segments'][0]['voice_label'])
+        self.assertEqual(build_tts_payload(literal['segments'][0], {})['text'], '#[voice:male_elder]#你好。')
+
     def test_required_chinese_three_page_regression(self):
         result = compile_pcs(REGRESSION_SOURCE)
         self.assertTrue(result['valid'])

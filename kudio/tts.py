@@ -10,7 +10,11 @@ VOICE_DEFAULTS = {'gpt': '', 'sovits': '', 'reference': '', 'prompt': '',
 
 def effective_voice(segment, project_voice):
     """Resolve project settings, segment overrides and persistent PCS rate."""
-    voice = dict(VOICE_DEFAULTS, **(project_voice or {}))
+    settings = project_voice or {}
+    if 'voice' in settings:
+        from .roles import project_voice as resolve_project_voice
+        settings = resolve_project_voice(segment, settings)
+    voice = dict(VOICE_DEFAULTS, **settings)
     voice.update(segment.get('overrides') or {})
     if segment.get('rate') is not None:
         voice['speed'] = segment['rate']

@@ -45,7 +45,7 @@ context.request=async(path,data)=>{
 run('api=request');
 (async()=>{
  assert.match(html,/accept="\.txt,\.pcs"/);
- assert.match(html,/<option value="txt">TXT · 自动分段<\/option>/);assert.match(html,/<option value="pcs">PCS · 控制脚本<\/option>/);assert.equal(html.includes('TXT · 自动识别 PCS'),false);
+ assert.match(html,/<option value="txt">普通文本 TXT<\/option>/);assert.match(html,/<option value="pcs">控制脚本 PCS<\/option>/);assert.equal(html.includes('TXT · 自动识别 PCS'),false);
  assert.equal(element('sourceFormat').value,'txt');assert(element('scriptToolbar').classes.has('hidden'));assert.equal(element('insertControl').disabled,true);assert.equal(element('parseScript').textContent,'预览分段');
  await run("load('A')");
  assert.equal(element('sourceFormat').value,'pcs');assert.equal(element('scriptToolbar').classes.has('hidden'),false);assert.equal(element('parseScript').textContent,'解析 PCS');

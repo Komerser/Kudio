@@ -1,0 +1,662 @@
+{
+  "选择作品": {
+    "en": "Select a project",
+    "ja": "作品を選択"
+  },
+  "[归档] ": {
+    "en": "[Archived] ",
+    "ja": "[アーカイブ] "
+  },
+  "{count} 部作品 · {archived} 部已归档": {
+    "en": "{count} projects · {archived} archived",
+    "ja": "{count} 作品 · {archived} 件アーカイブ"
+  },
+  "正在暂停": {
+    "en": "Pausing",
+    "ja": "一時停止中"
+  },
+  "正在生成{segment} · {count} 段运行中": {
+    "en": "Generating{segment} · {count} segment(s) running",
+    "ja": "生成中{segment} · {count} 区間処理中"
+  },
+  "全部完成": {
+    "en": "All complete",
+    "ja": "すべて完了"
+  },
+  "队列已停止": {
+    "en": "Queue stopped",
+    "ja": "キュー停止"
+  },
+  "整书时间轴 {estimate}{time}（含段间停顿）；标有 ≈ 的位置包含未生成片段估算，生成完成后自动校准。": {
+    "en": "Full timeline {estimate}{time}, including gaps. Positions marked ≈ include estimates and update after generation.",
+    "ja": "全体のタイムライン {estimate}{time}（区間の間隔を含む）。≈ は未生成区間の推定値を含み、生成後に更新されます。"
+  },
+  "约 ": {
+    "en": "approx. ",
+    "ja": "約 "
+  },
+  "匹配 {count} / {total} 段": {
+    "en": "{count} / {total} matching segments",
+    "ja": "一致 {count} / {total} 区間"
+  },
+  "没有匹配片段": {
+    "en": "No matching segments",
+    "ja": "一致する区間がありません"
+  },
+  "片段 #{number}": {
+    "en": "Segment #{number}",
+    "ja": "区間 #{number}"
+  },
+  "已完成": {
+    "en": "Complete",
+    "ja": "完了"
+  },
+  "待生成": {
+    "en": "Pending",
+    "ja": "未生成"
+  },
+  "生成中": {
+    "en": "Generating",
+    "ja": "生成中"
+  },
+  "失败": {
+    "en": "Failed",
+    "ja": "失敗"
+  },
+  "{duration} 秒": {
+    "en": "{duration} s",
+    "ja": "{duration} 秒"
+  },
+  "时长待生成": {
+    "en": "Duration pending",
+    "ja": "生成後に長さを確定"
+  },
+  "▶ 试听此段": {
+    "en": "▶ Preview segment",
+    "ja": "▶ この区間を試聴"
+  },
+  "参数 / 单段重做": {
+    "en": "Settings / regenerate",
+    "ja": "設定 / 区間を再生成"
+  },
+  "设为起点": {
+    "en": "Set start",
+    "ja": "開始に設定"
+  },
+  "设为终点": {
+    "en": "Set end",
+    "ja": "終了に設定"
+  },
+  "删除": {
+    "en": "Delete",
+    "ja": "削除"
+  },
+  "恢复上一版": {
+    "en": "Restore previous audio",
+    "ja": "前の音声を復元"
+  },
+  "边界片段已删除，请恢复或重新分组": {
+    "en": "Boundary segment was deleted. Restore it or adjust the group.",
+    "ja": "境界の区間が削除されました。復元するかグループを調整してください。"
+  },
+  "试听分组": {
+    "en": "Preview group",
+    "ja": "グループを試聴"
+  },
+  "导出 WAV": {
+    "en": "Export WAV",
+    "ja": "WAV を書き出し"
+  },
+  "移除分组": {
+    "en": "Remove group",
+    "ja": "グループを削除"
+  },
+  "尚未选择片段": {
+    "en": "No segment selected",
+    "ja": "区間が選択されていません"
+  },
+  "此范围内没有后续已生成片段": {
+    "en": "No later generated segment in this range",
+    "ja": "この範囲に後続の生成済み区間がありません"
+  },
+  "等待此片段生成，完成后自动继续": {
+    "en": "Waiting for this segment; playback continues when ready",
+    "ja": "この区間の生成を待っています。完了後に再生を続けます"
+  },
+  "音频文件无法读取": {
+    "en": "Unable to read the audio file",
+    "ja": "音声ファイルを読み込めません"
+  },
+  "试听未能开始：{error}": {
+    "en": "Could not start playback: {error}",
+    "ja": "試聴を開始できません：{error}"
+  },
+  "播放列表结束": {
+    "en": "End of playlist",
+    "ja": "再生リスト終了"
+  },
+  "整书位置 {estimate}{time} · 本段 {segmentTime}": {
+    "en": "Full position {estimate}{time} · Segment {segmentTime}",
+    "ja": "全体位置 {estimate}{time} · この区間 {segmentTime}"
+  },
+  "作品新名称": {
+    "en": "New project name",
+    "ja": "作品の新しい名前"
+  },
+  "作品已归档，可勾选显示归档作品查看": {
+    "en": "Project archived. Enable archived projects to view it.",
+    "ja": "作品をアーカイブしました。表示設定でアーカイブ済み作品を確認できます。"
+  },
+  "作品已恢复": {
+    "en": "Project restored",
+    "ja": "作品を復元しました"
+  },
+  "请输入有效的起止片段编号": {
+    "en": "Enter valid start and end segment numbers",
+    "ja": "有効な開始・終了区間番号を入力してください"
+  },
+  "分组已保存": {
+    "en": "Group saved",
+    "ja": "グループを保存しました"
+  },
+  "片段 #{number} · 独立参数": {
+    "en": "Segment #{number} · Individual settings",
+    "ja": "区間 #{number} · 個別設定"
+  },
+  " · 正文请在脚本工作台修改": {
+    "en": " · Edit the text in the text workspace",
+    "ja": " · 本文はテキスト画面で編集してください"
+  },
+  "不更改参考音频": {
+    "en": "Keep current reference audio",
+    "ja": "参照音声を変更しない"
+  },
+  "仅此片段已开始重新生成": {
+    "en": "Regenerating this segment only",
+    "ja": "この区間のみ再生成を開始しました"
+  },
+  "本片段已保存为待生成": {
+    "en": "Segment saved as pending",
+    "ja": "この区間を未生成として保存しました"
+  },
+  "路径尚未准备好": {
+    "en": "Path is not available yet",
+    "ja": "パスがまだ設定されていません"
+  },
+  "官方训练面板在线": {
+    "en": "Official training panel online",
+    "ja": "公式学習パネルに接続中"
+  },
+  "训练面板正在加载": {
+    "en": "Training panel is loading",
+    "ja": "学習パネルを読み込み中"
+  },
+  "训练面板未连接": {
+    "en": "Training panel disconnected",
+    "ja": "学習パネル未接続"
+  },
+  "暂无日志": {
+    "en": "No logs yet",
+    "ja": "ログはまだありません"
+  },
+  "工作台未连接": {
+    "en": "Workspace disconnected",
+    "ja": "ワークスペース未接続"
+  },
+  "可用": {
+    "en": "Ready",
+    "ja": "使用可能"
+  },
+  "正在加载": {
+    "en": "Loading",
+    "ja": "読み込み中"
+  },
+  "已停止 / 未连接": {
+    "en": "Stopped / disconnected",
+    "ja": "停止 / 未接続"
+  },
+  "载入依赖": {
+    "en": "Loading dependencies",
+    "ja": "依存ライブラリを読み込み中"
+  },
+  "载入 GPT 模型": {
+    "en": "Loading GPT model",
+    "ja": "GPT モデルを読み込み中"
+  },
+  "载入 SoVITS 模型": {
+    "en": "Loading SoVITS model",
+    "ja": "SoVITS モデルを読み込み中"
+  },
+  "载入文本模型": {
+    "en": "Loading text model",
+    "ja": "テキストモデルを読み込み中"
+  },
+  "载入音频模型": {
+    "en": "Loading audio model",
+    "ja": "音声モデルを読み込み中"
+  },
+  "正在生成音频": {
+    "en": "Generating audio",
+    "ja": "音声生成中"
+  },
+  "点击定位原始脚本": {
+    "en": "Locate in source text",
+    "ja": "元のテキスト内の位置を表示"
+  },
+  "Visual · 控制预览": {
+    "en": "Visual · Control preview",
+    "ja": "Visual · 制御プレビュー"
+  },
+  "Visual · 正文预览": {
+    "en": "Visual · Text preview",
+    "ja": "Visual · 本文プレビュー"
+  },
+  "PCS 可视化预览": {
+    "en": "PCS visual preview",
+    "ja": "PCS ビジュアルプレビュー"
+  },
+  "TXT 正文预览": {
+    "en": "TXT text preview",
+    "ja": "TXT 本文プレビュー"
+  },
+  "正在解析 PCS…": {
+    "en": "Parsing PCS…",
+    "ja": "PCS を解析中…"
+  },
+  "正在预览 TXT 分段…": {
+    "en": "Previewing TXT segments…",
+    "ja": "TXT の区間をプレビュー中…"
+  },
+  "PCS 尚未解析 · AST 和推理计划待更新": {
+    "en": "PCS not parsed · AST and generation plan need updating",
+    "ja": "PCS 未解析 · AST と生成計画の更新待ち"
+  },
+  "TXT 尚未预览 · 自动分段计划待更新": {
+    "en": "TXT not previewed · Segment plan needs updating",
+    "ja": "TXT 未プレビュー · 区間計画の更新待ち"
+  },
+  "解析后显示正文与控制 Chip。": {
+    "en": "Text and control chips appear after parsing.",
+    "ja": "解析後に本文と制御チップを表示します。"
+  },
+  "TXT 只按自然语言自动分段，所有内容均作为正文。": {
+    "en": "TXT is split as natural text; all content is read literally.",
+    "ja": "TXT は自然な文章として分割され、すべての内容を本文として読み上げます。"
+  },
+  "发现 {count} 个错误": {
+    "en": "{count} error(s) found",
+    "ja": "{count} 件のエラー"
+  },
+  "✓ PCS 语法有效": {
+    "en": "✓ PCS syntax is valid",
+    "ja": "✓ PCS の構文は有効です"
+  },
+  "✓ TXT 正文已读取": {
+    "en": "✓ TXT text loaded",
+    "ja": "✓ TXT 本文を読み込みました"
+  },
+  "{result} · {pages} Page · {pauses} Pause · {rates} Rate · {sections} Section · {warnings} Warning": {
+    "en": "{result} · {pages} pages · {pauses} pauses · {rates} rates · {sections} sections · {warnings} warnings",
+    "ja": "{result} · {pages} ページ · {pauses} 停止 · {rates} 速度 · {sections} セクション · {warnings} 警告"
+  },
+  "{result} · 按自然语言自动分段": {
+    "en": "{result} · Automatic natural-text segmentation",
+    "ja": "{result} · 自然な文章として自動分割"
+  },
+  "{level} · 第 {line} 行 · {message} ({code})": {
+    "en": "{level} · Line {line} · {message} ({code})",
+    "ja": "{level} · {line} 行目 · {message} ({code})"
+  },
+  "源码 {start}–{end}": {
+    "en": "Source {start}–{end}",
+    "ja": "ソース {start}–{end}"
+  },
+  "预览计划 · 应用后才更改作品和音频": {
+    "en": "Preview plan · Apply to update the project and audio",
+    "ja": "計画プレビュー · 適用後に作品と音声を更新"
+  },
+  "推理计划待更新 · 请解析、预览并应用脚本": {
+    "en": "Generation plan needs updating · Parse, preview and apply the script",
+    "ja": "生成計画の更新待ち · 解析、プレビュー、適用してください"
+  },
+  "已编译 · 按源码顺序执行": {
+    "en": "Compiled · Runs in source order",
+    "ja": "コンパイル済み · ソース順に実行"
+  },
+  "解析成功后可预览最终推理计划": {
+    "en": "Preview the generation plan after successful parsing",
+    "ja": "解析成功後に生成計画をプレビューできます"
+  },
+  "SOURCE MODIFIED · 解析 / 计划 / 时间轴 / 导出待更新": {
+    "en": "SOURCE MODIFIED · Parse / plan / timeline / exports need updating",
+    "ja": "ソース変更あり · 解析 / 計画 / タイムライン / 書き出しの更新待ち"
+  },
+  "PARSER ERROR · 请修正源码": {
+    "en": "PARSER ERROR · Fix the source text",
+    "ja": "解析エラー · ソースを修正してください"
+  },
+  "PARSING": {
+    "en": "PARSING",
+    "ja": "解析中"
+  },
+  "EXACT TIMELINE · 可导出": {
+    "en": "EXACT TIMELINE · Ready to export",
+    "ja": "実測タイムライン · 書き出し可能"
+  },
+  "COMPILED": {
+    "en": "COMPILED",
+    "ja": "コンパイル済み"
+  },
+  "PARSED": {
+    "en": "PARSED",
+    "ja": "解析済み"
+  },
+  "SOURCE": {
+    "en": "SOURCE",
+    "ja": "ソース"
+  },
+  "PCS 识别 Page、Pause、Rate、Section 控制标签，控制标签不参与朗读。": {
+    "en": "PCS recognizes Page, Pause, Rate, Section and Voice controls; controls are not spoken.",
+    "ja": "PCS は Page、Pause、Rate、Section、Voice の制御を認識します。制御は読み上げません。"
+  },
+  "TXT 沿用自然语言自动分段；不识别控制标签，标签及转义符均作为普通正文。": {
+    "en": "TXT uses natural-text segmentation. Control tags and escapes are read as ordinary text.",
+    "ja": "TXT は自然な文章として分割されます。制御タグやエスケープ文字も通常の本文として扱います。"
+  },
+  "旧项目音频安全保留。当前源码由旧片段重建；“应用并编译脚本”会显式转为脚本项目。": {
+    "en": "Existing audio is preserved. Source text is rebuilt from old segments; applying it converts the project to a source-based project.",
+    "ja": "既存の音声は保持されます。旧区間から復元したテキストを適用すると、ソース管理の作品に変換します。"
+  },
+  "修改只保存在本次页面的作品草稿中；应用后才重新编译。相同片段尽可能复用音频。": {
+    "en": "Edits stay in this page session until applied. Unchanged segments reuse their audio when possible.",
+    "ja": "変更はこのページの下書きとして保持され、適用後に再コンパイルします。同じ区間の音声は可能な限り再利用します。"
+  },
+  "原始脚本是唯一正文来源。": {
+    "en": "The source text is the authoritative text.",
+    "ja": "元のテキストが本文の唯一のソースです。"
+  },
+  "解析 PCS": {
+    "en": "Parse PCS",
+    "ja": "PCS を解析"
+  },
+  "预览分段": {
+    "en": "Preview segments",
+    "ja": "区間をプレビュー"
+  },
+  "#[p:1]#开场。#[p:2]#第二页。#[pause:800]#继续。#[rate:0.9]#稍慢一点。": {
+    "en": "#[p:1]#Opening.#[p:2]#Page two.#[pause:800]#Continue.#[rate:0.9]#A little slower.",
+    "ja": "#[p:1]#始まり。#[p:2]#2 ページ目。#[pause:800]#続けます。#[rate:0.9]#少しゆっくり。"
+  },
+  "在这里粘贴正文，按段落、标点和每段最多字数自动分段。": {
+    "en": "Paste text here. Paragraphs, punctuation and the segment length guide automatic splitting.",
+    "ja": "ここに本文を貼り付けてください。段落、句読点、区間の文字数に沿って自動分割します。"
+  },
+  "请先成功解析脚本": {
+    "en": "Parse the script successfully first",
+    "ja": "先にスクリプトを正しく解析してください"
+  },
+  "请先修正错误并解析脚本": {
+    "en": "Fix the errors and parse the script first",
+    "ja": "先にエラーを修正してスクリプトを解析してください"
+  },
+  "请先暂停生成队列": {
+    "en": "Pause the generation queue first",
+    "ja": "先に生成キューを一時停止してください"
+  },
+  "作品保存结果无效": {
+    "en": "Invalid project save response",
+    "ja": "作品の保存結果が無効です"
+  },
+  "脚本已应用并编译；未变化片段保留已生成音频": {
+    "en": "Text applied and compiled; unchanged segments keep their audio",
+    "ja": "テキストを適用してコンパイルしました。変更のない区間の音声は保持します"
+  },
+  "STALE · ": {
+    "en": "STALE · ",
+    "ja": "未更新 · "
+  },
+  "Exact Timeline · 实测时间轴": {
+    "en": "Exact Timeline · Measured timing",
+    "ja": "実測タイムライン"
+  },
+  "Estimated Timeline · 估算时间轴": {
+    "en": "Estimated Timeline · Estimated timing",
+    "ja": "推定タイムライン"
+  },
+  "{stale}{status} {time} · 含默认间隔及显式停顿；控制事件按源码顺序执行。": {
+    "en": "{stale}{status} {time} · Includes default gaps and explicit pauses; controls run in source order.",
+    "ja": "{stale}{status} {time} · 既定の間隔と指定した停止を含み、制御をソース順に実行します。"
+  },
+  "STALE · 应用脚本后更新": {
+    "en": "STALE · Apply text to update",
+    "ja": "未更新 · テキストを適用して更新"
+  },
+  "Exact · 实测 WAV 帧时间": {
+    "en": "Exact · Measured WAV frame timing",
+    "ja": "実測 · WAV フレームによる時間"
+  },
+  "Estimated · 推理前结构预览": {
+    "en": "Estimated · Structure preview before generation",
+    "ja": "推定 · 生成前の構造プレビュー"
+  },
+  "文件过大，请按卷导入": {
+    "en": "File too large. Import it in smaller parts.",
+    "ja": "ファイルが大きすぎます。分割して読み込んでください。"
+  },
+  "作品已保存。请核对脚本、音色后开始生成": {
+    "en": "Project saved. Review the text and voice before generating.",
+    "ja": "作品を保存しました。テキストと音声設定を確認してから生成してください。"
+  },
+  "脚本有未应用修改或解析错误，请先解析并应用": {
+    "en": "Text has unapplied edits or parsing errors. Parse and apply it first.",
+    "ja": "未適用の変更または解析エラーがあります。先に解析して適用してください。"
+  },
+  "请先应用脚本": {
+    "en": "Apply the text first",
+    "ja": "先にテキストを適用してください"
+  },
+  "请先生成全部语音，正式 KSON 使用实测时间轴": {
+    "en": "Generate all audio first. Final KSON uses measured timing.",
+    "ja": "先にすべての音声を生成してください。正式な KSON は実測時間を使用します。"
+  },
+  "KSON 已导出到作品的 exports 文件夹": {
+    "en": "KSON exported to the project’s exports folder",
+    "ja": "作品の exports フォルダーに KSON を書き出しました"
+  },
+  "KSON JSON 已复制": {
+    "en": "KSON JSON copied",
+    "ja": "KSON JSON をコピーしました"
+  },
+  "所属分段：尚未划分": {
+    "en": "Group: not assigned",
+    "ja": "グループ：未設定"
+  },
+  "所属分段：": {
+    "en": "Group:",
+    "ja": "グループ："
+  },
+  "建议 · {name}": {
+    "en": "Suggested · {name}",
+    "ja": "提案 · {name}"
+  },
+  "建议：{name}": {
+    "en": "Suggested: {name}",
+    "ja": "提案：{name}"
+  },
+  "未划分": {
+    "en": "Ungrouped",
+    "ja": "未分類"
+  },
+  "实色：已确认　斜纹：建议　多色：重叠分段": {
+    "en": "Solid: confirmed · Hatched: suggested · Multiple colors: overlapping groups",
+    "ja": "単色：確定 · 斜線：提案 · 複数色：重複グループ"
+  },
+  "处理中…": {
+    "en": "Working…",
+    "ja": "処理中…"
+  },
+  "操作失败：{error}": {
+    "en": "Operation failed: {error}",
+    "ja": "操作に失敗しました：{error}"
+  },
+  "新建手动分段 · 包含起止片段": {
+    "en": "New manual group · Includes both boundary segments",
+    "ja": "手動グループを作成 · 開始と終了の区間を含む"
+  },
+  "保存分段": {
+    "en": "Save group",
+    "ja": "グループを保存"
+  },
+  "根据建议调整后另存为手动分段": {
+    "en": "Adjust the suggestion and save as a manual group",
+    "ja": "提案を調整して手動グループとして保存"
+  },
+  "正在编辑已确认分段": {
+    "en": "Editing a confirmed group",
+    "ja": "確定したグループを編集中"
+  },
+  "保存修改": {
+    "en": "Save changes",
+    "ja": "変更を保存"
+  },
+  "包含 {count} 个片段 · 已完成 {done} · #{first}–#{last}": {
+    "en": "{count} segments · {done} complete · #{first}–#{last}",
+    "ja": "{count} 区間 · {done} 完了 · #{first}–#{last}"
+  },
+  "请选择有效的起止编号，可直接在片段上设置边界。": {
+    "en": "Choose valid start and end numbers, or set boundaries from the segments.",
+    "ja": "有効な開始・終了番号を選ぶか、各区間で境界を設定してください。"
+  },
+  "已将片段 #{number} 设为{boundary}；在下方保存分段": {
+    "en": "Segment #{number} set as {boundary}; save the group below",
+    "ja": "区間 #{number} を{boundary}に設定しました。下でグループを保存してください"
+  },
+  "起点": {
+    "en": "start",
+    "ja": "開始"
+  },
+  "终点": {
+    "en": "end",
+    "ja": "終了"
+  },
+  "{count} 个已确认 · {suggested} 个待参考": {
+    "en": "{count} confirmed · {suggested} suggested",
+    "ja": "{count} 件確定 · {suggested} 件提案"
+  },
+  "已确认分段 ({count})": {
+    "en": "Confirmed groups ({count})",
+    "ja": "確定グループ ({count})"
+  },
+  "自动建议 ({count})": {
+    "en": "Automatic suggestions ({count})",
+    "ja": "自動提案 ({count})"
+  },
+  "自动建议 · 未采纳": {
+    "en": "Automatic suggestion · Not accepted",
+    "ja": "自動提案 · 未採用"
+  },
+  "已采纳建议": {
+    "en": "Accepted suggestion",
+    "ja": "採用済みの提案"
+  },
+  "手动分段": {
+    "en": "Manual group",
+    "ja": "手動グループ"
+  },
+  "#{first}–#{last} · {count} 段 · 已生成 {done} 段 · {estimate}{start} — {end}": {
+    "en": "#{first}–#{last} · {count} segments · {done} generated · {estimate}{start} — {end}",
+    "ja": "#{first}–#{last} · {count} 区間 · {done} 生成済み · {estimate}{start} — {end}"
+  },
+  "边界片段已删除，请恢复或重新调整范围": {
+    "en": "Boundary segment deleted. Restore it or adjust the range.",
+    "ja": "境界の区間が削除されました。復元するか範囲を調整してください。"
+  },
+  "采纳为正式分段": {
+    "en": "Accept as a group",
+    "ja": "正式なグループとして採用"
+  },
+  "调整后保存": {
+    "en": "Adjust and save",
+    "ja": "調整して保存"
+  },
+  "忽略建议": {
+    "en": "Dismiss suggestion",
+    "ja": "提案を非表示"
+  },
+  "定位片段": {
+    "en": "Locate segment",
+    "ja": "区間へ移動"
+  },
+  "编辑分段": {
+    "en": "Edit group",
+    "ja": "グループを編集"
+  },
+  "试听": {
+    "en": "Preview",
+    "ja": "試聴"
+  },
+  "导出此分段 WAV": {
+    "en": "Export group WAV",
+    "ja": "グループの WAV を書き出し"
+  },
+  "仅导出字幕 SRT": {
+    "en": "Export subtitles only (SRT)",
+    "ja": "字幕のみ書き出し (SRT)"
+  },
+  "请先选择作品": {
+    "en": "Select a project first",
+    "ja": "先に作品を選択してください"
+  },
+  "作品已切换，请重新选择分段": {
+    "en": "Project changed. Select the group again.",
+    "ja": "作品が切り替わりました。グループを選び直してください"
+  },
+  "PPT · {value}": {
+    "en": "PPT · {value}",
+    "ja": "PPT · {value}"
+  },
+  "PAUSE · {value} ms": {
+    "en": "PAUSE · {value} ms",
+    "ja": "停止 · {value} ms"
+  },
+  "SPEED · {value}×": {
+    "en": "SPEED · {value}×",
+    "ja": "速度 · {value}×"
+  },
+  "SECTION · {value}": {
+    "en": "SECTION · {value}",
+    "ja": "章 · {value}"
+  },
+  "CONTROL · {command}": {
+    "en": "CONTROL · {command}",
+    "ja": "制御 · {command}"
+  },
+  "TEXT": {
+    "en": "TEXT",
+    "ja": "本文"
+  },
+  "PPT {value}": {
+    "en": "PPT {value}",
+    "ja": "PPT {value}"
+  },
+  "SECTION {value}": {
+    "en": "SECTION {value}",
+    "ja": "章 {value}"
+  },
+  "Speech #{number}": {
+    "en": "Speech #{number}",
+    "ja": "音声 #{number}"
+  },
+  "Pause {duration}ms": {
+    "en": "Pause {duration}ms",
+    "ja": "停止 {duration}ms"
+  },
+  "移除分段": {
+    "en": "Remove group",
+    "ja": "グループを削除"
+  },
+  "Section": {
+    "en": "Section",
+    "ja": "章"
+  }
+}

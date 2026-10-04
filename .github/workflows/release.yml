@@ -1,0 +1,52 @@
+name: Windows release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - name: Check release version
+        shell: pwsh
+        run: |
+          $version = (Get-Content -LiteralPath VERSION.txt -Raw).Trim()
+          if ($env:GITHUB_REF_NAME -ne "v$version") { throw 'Tag and VERSION.txt must match.' }
+          if (-not (Test-Path -LiteralPath "docs/UPDATE_$version.md")) { throw 'Version report is missing.' }
+      - name: Backend regressions
+        run: python -m unittest test_app test_pcs test_timeline test_pipeline
+      - name: Frontend regressions
+        shell: pwsh
+        run: |
+          foreach ($test in @('test_switching.cjs','test_pcs.cjs','test_rebuild.cjs','test_i18n.cjs')) {
+            node $test
+            if ($LASTEXITCODE -ne 0) { throw "Failed: $test" }
+          }
+      - name: Build and validate offline release
+        run: python build_release.py
+      - name: Publish ZIP and checksum
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          $version = (Get-Content -LiteralPath VERSION.txt -Raw).Trim()
+          gh release create $env:GITHUB_REF_NAME "dist/Kudio-$version-windows.zip" "dist/Kudio-$version-windows.zip.sha256" --verify-tag --title "Kudio $version" --notes-file "docs/UPDATE_$version.md" --latest
+          if ($LASTEXITCODE -ne 0) { throw 'Release publication failed.' }

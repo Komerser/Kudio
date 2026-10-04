@@ -1,5 +1,5 @@
 /* Local file selection and catalog for voice settings. Paths remain on this PC. */
-let assetCatalog={gpt:[],sovits:[],reference:[]};
+let assetCatalog={gpt:[],sovits:[],reference:[]},assetCatalogData=null;
 let assetScanToken=0;
 const assetFields={gpt:'gptChoices',sovits:'sovitsChoices',reference:'referenceChoices'};
 const assetRoots=['engineRoot','modelRoot','referenceRoot'];
@@ -20,8 +20,8 @@ function syncAssetChoices(){
 window.syncAssetChoices=syncAssetChoices;
 
 function showAssetCatalog(data){
- assetCatalog=data.candidates||{gpt:[],sovits:[],reference:[]};
- const prompts={gpt:'从已扫描文件中选择 GPT 模型',sovits:'从已扫描文件中选择 SoVITS 模型',reference:'从已扫描文件中选择参考音频'};
+ assetCatalogData=data;assetCatalog=data.candidates||{gpt:[],sovits:[],reference:[]};
+ const prompts={gpt:uiText('从已扫描文件中选择 GPT 模型'),sovits:uiText('从已扫描文件中选择 SoVITS 模型'),reference:uiText('从已扫描文件中选择参考音频')};
  for(const [field,selectId] of Object.entries(assetFields)){
   const select=$(selectId);
   select.replaceChildren(new Option(prompts[field],''));
@@ -34,15 +34,23 @@ function showAssetCatalog(data){
   }
  }
  syncAssetChoices();
- const counts=`找到 ${assetCatalog.gpt.length} 个 GPT 模型、${assetCatalog.sovits.length} 个 SoVITS 模型、${assetCatalog.reference.length} 个参考音频`;
- const restart=data.restart_required?'；GPT-SoVITS 目录已更改，请重启 Kudio 后再生成':'';
- assetStatus(counts+(data.truncated?'；结果较多，仅显示前一部分':'')+restart+'。');
+ const counts=uiText('找到 {gpt} 个 GPT 模型、{sovits} 个 SoVITS 模型、{reference} 个参考音频',{gpt:assetCatalog.gpt.length,sovits:assetCatalog.sovits.length,reference:assetCatalog.reference.length});
+ const restart=data.restart_required?uiText('；GPT-SoVITS 目录已更改，请重启 Kudio 后再生成'):'';
+ assetStatus(uiText('{summary}{truncated}{restart}。',{summary:counts,truncated:data.truncated?uiText('；结果较多，仅显示前一部分'):'',restart}));
+}
+
+function refreshAssetLanguage(){
+ const selections=Object.fromEntries(Object.values(assetFields).map(id=>[id,$(id).value]));
+ const notice=$('assetStatus').textContent,cached=assetCatalogData;
+ showAssetCatalog(cached||{candidates:assetCatalog});
+ for(const [id,value] of Object.entries(selections))$(id).value=value;
+ if(!cached){assetCatalogData=null;assetStatus(uiText(notice))}
 }
 
 async function refreshAssets(saveRoots=false){
  const token=++assetScanToken;
  const before=Object.fromEntries(assetRoots.map(id=>[id,$(id).value]));
- assetStatus('正在扫描本机素材…');
+ assetStatus(uiText('正在扫描本机素材…'));
  try{
   if(saveRoots){
    const saved=await api('asset-roots',assetRootValues());
@@ -53,7 +61,7 @@ async function refreshAssets(saveRoots=false){
   if(token!==assetScanToken)return;
   setAssetRoots(data.roots,before);
   showAssetCatalog(data);
- }catch(error){if(token!==assetScanToken)return;assetStatus('素材扫描未完成：'+error.message+'。请检查目录后重试。');throw error}
+ }catch(error){if(token!==assetScanToken)return;assetStatus(uiText('素材扫描未完成：{error}。请检查目录后重试。',{error:error.message}));throw error}
 }
 
 function matchingRole(key,group){
@@ -86,7 +94,7 @@ function fillRelatedAsset(kind,item){
  for(const target of [kind==='gpt'?'sovits':'gpt','reference']){
   if($(target).value.trim())continue;
   const match=relatedAssets(target,item,kind);
-  if(match){$(target).value=match.path;filled.push(target==='gpt'?'GPT':target==='sovits'?'SoVITS':'参考音频')}
+  if(match){$(target).value=match.path;filled.push(target==='gpt'?'GPT':target==='sovits'?'SoVITS':uiText('参考音频'))}
  }
  return filled;
 }
@@ -99,7 +107,7 @@ function chooseCatalogAsset(kind){
  const paired=fillRelatedAsset(kind,item);
  rememberDrafts();
  syncAssetChoices();
- assetStatus((kind==='gpt'?'GPT 模型':kind==='sovits'?'SoVITS 模型':'参考音频')+'已填入'+(paired.length?'，同时找到 '+paired.join('、'):'')+'。核对后点击“应用配置到当前作品”。');
+ assetStatus(paired.length?uiText('{name}已填入，同时找到 {names}。核对后点击“应用配置到当前作品”。',{name:kind==='gpt'?uiText('GPT 模型'):kind==='sovits'?uiText('SoVITS 模型'):uiText('参考音频'),names:paired.join(' · ')}):uiText('{name}已填入。核对后点击“应用配置到当前作品”。',{name:kind==='gpt'?uiText('GPT 模型'):kind==='sovits'?uiText('SoVITS 模型'):uiText('参考音频')}));
 }
 
 async function chooseLocalFile(kind,field){
@@ -115,14 +123,14 @@ async function chooseLocalFile(kind,field){
  $(field).value=result.path;
  rememberDrafts();
  syncAssetChoices();
- assetStatus('已选择文件。核对后点击“应用配置到当前作品”。');
+ assetStatus(uiText('已选择文件。核对后点击“应用配置到当前作品”。'));
 }
 async function chooseLocalRoot(kind,field){
  const result=await api('pick-path',{kind,initial:$(field).value});
  if(result.cancelled||!result.path)return;
  $(field).value=result.path;
  assetScanToken++;
- assetStatus('目录已选择，点击“保存目录并扫描”查看候选文件。');
+ assetStatus(uiText('目录已选择，点击“保存目录并扫描”查看候选文件。'));
 }
 
 for(const [buttonId,kind,field] of [
@@ -134,9 +142,9 @@ for(const [buttonId,kind,field] of [
  ['pickReferenceRoot','reference_root','referenceRoot']
 ])$(buttonId).onclick=()=>safe(()=>chooseLocalRoot(kind,field));
 $('scanAssets').onclick=()=>safe(()=>refreshAssets(true));
-for(const id of assetRoots)$(id).addEventListener('input',()=>{assetScanToken++;assetStatus('目录已更改，点击“保存目录并扫描”查看候选文件。')});
+for(const id of assetRoots)$(id).addEventListener('input',()=>{assetScanToken++;assetStatus(uiText('目录已更改，点击“保存目录并扫描”查看候选文件。'))});
 for(const kind of Object.keys(assetFields)){
  $(assetFields[kind]).onchange=()=>chooseCatalogAsset(kind);
  $(kind).addEventListener('input',()=>{rememberDrafts();syncAssetChoices()});
 }
-refreshAssets().catch(error=>assetStatus('素材扫描未完成：'+error.message+'。可指定目录后重试。'));
+refreshAssets().catch(error=>assetStatus(uiText('素材扫描未完成：{error}。可指定目录后重试。',{error:error.message})));

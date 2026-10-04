@@ -31,12 +31,16 @@ def migrate_project(project):
         project.setdefault('source_hash', source_hash(project['source_text']))
     project.setdefault('pcs_version', '0.1')
     project.setdefault('limit', 160)
+    project.setdefault('default_role_id', None)
+    project.setdefault('voice_bindings', {})
+    project.setdefault('role_snapshots', {})
     project['schema_version'] = SCHEMA_VERSION
     for segment in project['segments']:
         segment['source_format'] = 'pcs' if project['source_format'] == 'pcs' else 'txt'
         segment.setdefault('page', None)
         segment.setdefault('section', None)
         segment.setdefault('rate', None)
+        segment.setdefault('voice_label', None)
         segment.setdefault('overrides', {})
         segment.setdefault('audio_version', None)
         segment.setdefault('source_start', None)

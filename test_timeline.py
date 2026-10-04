@@ -73,6 +73,23 @@ class TimelineTests(unittest.TestCase):
         self.assertIn('00:00:00,000 --> 00:00:00,100\n第一行\n第二行', subtitle)
         self.assertIn('00:00:00,433 --> 00:00:00,533', subtitle)
 
+    def test_voice_events_rebase_for_range_and_export_saved_role_metadata(self):
+        project = self.project()
+        project['source_format'] = 'pcs'
+        project['role_snapshots'] = {'elder': {'id': 'elder', 'name': '老人', 'voice': {'speed': .8}}}
+        project['voice_bindings'] = {'male_elder': 'elder'}
+        for segment in project['segments']:
+            segment.update(source_format='pcs', voice_label='male_elder')
+        project['execution_plan'] = [self.event('voice', label='male_elder'),
+                                     self.speech('s0'), self.speech('s1')]
+        timeline = build_timeline(project, self.folder, exact=True, members=project['segments'][1:])
+        self.assertEqual(timeline['events'][0]['type'], 'voice')
+        self.assertEqual(timeline['events'][0]['time_ms'], 0)
+        self.assertTrue(timeline['events'][0]['inherited'])
+        self.assertEqual(timeline['segments'][0]['speech']['rate'], .8)
+        self.assertEqual(timeline['segments'][0]['role_name'], '老人')
+        self.assertEqual(timeline['duration_ms'], 100)
+
     def test_rounds_cumulative_frame_boundaries_not_individual_durations(self):
         project = self.project(count=100, gap=0)
         for segment in project['segments']:

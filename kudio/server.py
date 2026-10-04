@@ -23,7 +23,8 @@ from .models import defaults, validate_voice
 from .text import split_text
 from .pcs import parse_source
 from .compiler import compile_source, segment_fingerprint
-from .tts import build_tts_payload, infer_segment
+from .tts import build_tts_payload, infer_segment, effective_voice
+from .roles import voice_labels, resolved_role, binding_errors, require_bindings, apply_bindings
 from .projects import migrate_project, apply_compilation, require_compiled
 from .timeline import build_timeline, wav_details
 from .exporters import build_kson, write_srt, write_kson, merge_wav
@@ -73,6 +74,8 @@ TRAINING_PROCESS = None
 
 ASSET_KINDS = {'gpt': '.ckpt', 'sovits': '.pth',
                'reference': ('.wav', '.mp3', '.flac')}
+IMAGE_KINDS = {'avatar': ('.png', '.jpg', '.jpeg', '.webp', '.gif'),
+               'portrait': ('.png', '.jpg', '.jpeg', '.webp', '.gif')}
 ROOT_FIELDS = ('engine_root', 'model_root', 'reference_root')
 SKIP_ASSET_DIRS = {'runtime', 'temp', 'tmp', 'pretrained', 'pretrained_models',
                    'logs', 'log', 'cache', '__pycache__', '.git', 'venv', 'dist'}
@@ -258,6 +261,73 @@ def asset_catalog():
 PICK_PATH_SCRIPT = r'''
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Windows.Forms
+Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public static class KudioFolderDialog {
+    [ComImport, Guid("42f85136-db7e-439c-85f1-e4075d135fc8"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface IFileDialog {
+        [PreserveSig] int Show(IntPtr owner);
+        void SetFileTypes(uint count, IntPtr filters);
+        void SetFileTypeIndex(uint index);
+        void GetFileTypeIndex(out uint index);
+        void Advise(IntPtr events, out uint cookie);
+        void Unadvise(uint cookie);
+        void SetOptions(uint options);
+        void GetOptions(out uint options);
+        void SetDefaultFolder(IShellItem folder);
+        void SetFolder(IShellItem folder);
+        void GetFolder(out IShellItem folder);
+        void GetCurrentSelection(out IShellItem selection);
+        void SetFileName([MarshalAs(UnmanagedType.LPWStr)] string name);
+        void GetFileName(out IntPtr name);
+        void SetTitle([MarshalAs(UnmanagedType.LPWStr)] string title);
+        void SetOkButtonLabel([MarshalAs(UnmanagedType.LPWStr)] string text);
+        void SetFileNameLabel([MarshalAs(UnmanagedType.LPWStr)] string text);
+        void GetResult(out IShellItem result);
+    }
+    [ComImport, Guid("43826d1e-e718-42ee-bc55-a1e261c37bfe"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface IShellItem {
+        void BindToHandler(IntPtr context, ref Guid handler, ref Guid iid, out IntPtr result);
+        void GetParent(out IShellItem parent);
+        void GetDisplayName(uint format, out IntPtr name);
+        void GetAttributes(uint mask, out uint attributes);
+        void Compare(IShellItem other, uint hint, out int order);
+    }
+    [DllImport("shell32.dll", CharSet=CharSet.Unicode, PreserveSig=false)]
+    private static extern void SHCreateItemFromParsingName(string path, IntPtr context, ref Guid iid,
+                                                          out IShellItem item);
+    public static string Pick(IntPtr owner, string initial, string title) {
+        IFileDialog dialog = (IFileDialog)Activator.CreateInstance(Type.GetTypeFromCLSID(
+            new Guid("dc1c5a9c-e88a-4dde-a5a1-60f82a20aef7")));
+        IShellItem folder = null, result = null;
+        IntPtr name = IntPtr.Zero;
+        try {
+            uint options;
+            dialog.GetOptions(out options);
+            // FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM | FOS_PATHMUSTEXIST | FOS_NOCHANGEDIR.
+            dialog.SetOptions(options | 0x20 | 0x40 | 0x800 | 0x8);
+            dialog.SetTitle(title);
+            if (!String.IsNullOrEmpty(initial) && System.IO.Directory.Exists(initial)) {
+                Guid iid = typeof(IShellItem).GUID;
+                SHCreateItemFromParsingName(initial, IntPtr.Zero, ref iid, out folder);
+                dialog.SetFolder(folder);
+            }
+            int status = dialog.Show(owner);
+            if (status == unchecked((int)0x800704c7)) return "";
+            Marshal.ThrowExceptionForHR(status);
+            dialog.GetResult(out result);
+            result.GetDisplayName(0x80058000, out name);
+            return Marshal.PtrToStringUni(name);
+        } finally {
+            if (name != IntPtr.Zero) Marshal.FreeCoTaskMem(name);
+            if (result != null) Marshal.FinalReleaseComObject(result);
+            if (folder != null) Marshal.FinalReleaseComObject(folder);
+            Marshal.FinalReleaseComObject(dialog);
+        }
+    }
+}
+'@
 $kind = $env:KUDIO_PICK_KIND
 $initial = $env:KUDIO_PICK_INITIAL
 $owner = New-Object System.Windows.Forms.Form
@@ -271,24 +341,18 @@ $owner.TopMost = $true
 $owner.Show()
 try {
 if ($kind -in @('engine_root', 'model_root', 'reference_root')) {
-    $picker = New-Object System.Windows.Forms.FolderBrowserDialog
-    $picker.ShowNewFolderButton = $false
-    $picker.Description = '选择 Kudio 使用的本机文件夹'
-    if ($initial -and (Test-Path -LiteralPath $initial -PathType Container)) {
-        $picker.SelectedPath = $initial
+    $selected = [KudioFolderDialog]::Pick($owner.Handle, $initial, $env:KUDIO_PICK_TITLE)
+    if ($selected) {
+        [Console]::Out.Write([Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($selected)))
     }
-    try {
-        if ($picker.ShowDialog($owner) -eq [System.Windows.Forms.DialogResult]::OK) {
-            [Console]::Out.Write([Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($picker.SelectedPath)))
-        }
-    } finally { $picker.Dispose() }
 } else {
     $picker = New-Object System.Windows.Forms.OpenFileDialog
     $picker.CheckFileExists = $true
+    $picker.AutoUpgradeEnabled = $true
+    $picker.RestoreDirectory = $true
     $picker.Multiselect = $false
-    if ($kind -eq 'gpt') { $picker.Filter = 'GPT 模型 (*.ckpt)|*.ckpt' }
-    elseif ($kind -eq 'sovits') { $picker.Filter = 'SoVITS 模型 (*.pth)|*.pth' }
-    else { $picker.Filter = '参考音频 (*.wav;*.mp3;*.flac)|*.wav;*.mp3;*.flac' }
+    $picker.Title = $env:KUDIO_PICK_TITLE
+    $picker.Filter = $env:KUDIO_PICK_FILTER
     if ($initial -and (Test-Path -LiteralPath $initial)) {
         if (Test-Path -LiteralPath $initial -PathType Container) {
             $picker.InitialDirectory = $initial
@@ -310,13 +374,18 @@ if ($kind -in @('engine_root', 'model_root', 'reference_root')) {
 '''
 
 
-def pick_local_path(kind, initial=''):
-    if kind not in ASSET_KINDS and kind not in ROOT_FIELDS:
+def pick_local_path(kind, initial='', ui_language='zh'):
+    if kind not in ASSET_KINDS and kind not in ROOT_FIELDS and kind not in IMAGE_KINDS:
         raise ValueError('未知的文件或目录类型')
     if os.name != 'nt':
         raise ValueError('本机选择窗口仅支持 Windows')
     if not isinstance(initial, str):
         raise ValueError('初始路径无效')
+    history_path = DATA / 'path_history.json'
+    history = json.loads(history_path.read_text(encoding='utf-8')) if history_path.is_file() else {}
+    remembered = history.get(kind, '')
+    if remembered and Path(remembered).is_dir():
+        initial = remembered
     if not initial:
         roots = asset_roots()
         initial = {
@@ -326,10 +395,23 @@ def pick_local_path(kind, initial=''):
             'engine_root': roots['engine_root'],
             'model_root': roots['model_root'] or roots['engine_root'],
             'reference_root': roots['reference_root'] or roots['model_root'],
+            'avatar': str(Path.home() / 'Pictures'),
+            'portrait': str(Path.home() / 'Pictures'),
         }[kind]
     env = dict(os.environ)
     env['KUDIO_PICK_KIND'] = kind
     env['KUDIO_PICK_INITIAL'] = initial
+    picker_copy = {
+        'zh': ('选择 Kudio 使用的本机文件夹', '选择 Kudio 使用的本机文件', 'GPT 模型', 'SoVITS 模型', '角色图片', '参考音频'),
+        'en': ('Select a local folder for Kudio', 'Select a local file for Kudio', 'GPT models', 'SoVITS models', 'Character images', 'Reference audio'),
+        'ja': ('Kudio で使用するフォルダーを選択', 'Kudio で使用するファイルを選択', 'GPT モデル', 'SoVITS モデル', 'キャラクター画像', '参照音声'),
+    }.get(ui_language if isinstance(ui_language, str) else 'zh')
+    if picker_copy is None:
+        picker_copy = ('选择 Kudio 使用的本机文件夹', '选择 Kudio 使用的本机文件', 'GPT 模型', 'SoVITS 模型', '角色图片', '参考音频')
+    env['KUDIO_PICK_TITLE'] = picker_copy[0 if kind in ROOT_FIELDS else 1]
+    extensions = '*.ckpt' if kind == 'gpt' else '*.pth' if kind == 'sovits' else '*.png;*.jpg;*.jpeg;*.webp;*.gif' if kind in IMAGE_KINDS else '*.wav;*.mp3;*.flac'
+    label = picker_copy[2 if kind == 'gpt' else 3 if kind == 'sovits' else 4 if kind in IMAGE_KINDS else 5]
+    env['KUDIO_PICK_FILTER'] = '%s (%s)|%s' % (label, extensions, extensions)
     command = base64.b64encode(PICK_PATH_SCRIPT.encode('utf-16le')).decode('ascii')
     powershell = Path(os.environ.get('SystemRoot', r'C:\Windows')) / 'System32' / 'WindowsPowerShell' / 'v1.0' / 'powershell.exe'
     if not powershell.is_file():
@@ -345,6 +427,8 @@ def pick_local_path(kind, initial=''):
     selected = base64.b64decode(encoded, validate=True).decode('utf-16le')
     if kind in ROOT_FIELDS:
         selected = validate_asset_root(kind, selected)
+    elif kind in IMAGE_KINDS:
+        selected = validated_role_image(selected)
     else:
         path = Path(selected)
         extensions = ASSET_KINDS[kind]
@@ -353,6 +437,14 @@ def pick_local_path(kind, initial=''):
         if not path.is_file() or path.suffix.casefold() not in extensions:
             raise ValueError('请选择对应格式的本机文件')
         selected = str(path.resolve())
+    history[kind] = selected if kind in ROOT_FIELDS else str(Path(selected).parent)
+    DATA.mkdir(exist_ok=True)
+    temporary = DATA / ('path_history.' + uuid.uuid4().hex + '.tmp')
+    try:
+        temporary.write_text(json.dumps(history, ensure_ascii=False, indent=2), encoding='utf-8')
+        os.replace(str(temporary), str(history_path))
+    finally:
+        temporary.unlink(missing_ok=True)
     return {'path': selected, 'cancelled': False}
 
 
@@ -368,6 +460,8 @@ def project_view(p):
     """Present a shared timeline and draft KSON without changing the saved project."""
     p = copy.deepcopy(p)
     p['folder'] = str(project_dir(p['id']).resolve())
+    p['voice_labels'] = voice_labels(p)
+    p['voice_binding_errors'] = binding_errors(p)
     timeline = build_timeline(p, project_dir(p['id']), format_audio=export_source)
     by_id = {s['id']: s for s in timeline['segments']}
     for i, s in enumerate(p['segments']):
@@ -377,6 +471,9 @@ def project_view(p):
         if s.get('status') == 'done' and not timing['estimated']:
             s['duration'] = timing['duration_ms'] / 1000
         s['number'] = i + 1
+        role_id, role = resolved_role(s, p)
+        s['resolved_role_id'] = role_id
+        s['resolved_role_name'] = role['name'] if role else p['voice'].get('name', '默认角色')
     p['timeline'] = {k: v for k, v in timeline.items() if k not in ('items',)}
     p['timeline_duration'] = timeline['duration_ms'] / 1000
     p['timeline_estimated'] = timeline['timing_status'] != 'exact'
@@ -422,16 +519,37 @@ def invalidate_exports(p):
 
 def apply_voice(p, voice):
     validate_voice(voice)
-    old = p['voice']
-    synthesis_changed = {k: v for k, v in voice.items() if k not in ('name', 'gap')} != {k: v for k, v in old.items() if k not in ('name', 'gap')}
-    if synthesis_changed:
-        for s in p['segments']:
-            if segment_fingerprint(s, old) != segment_fingerprint(s, voice):
-                s.update(status='pending', error='', duration=0, audio_version=None)
-            s['fingerprint'] = segment_fingerprint(s, voice)
-    if synthesis_changed or old.get('gap') != voice.get('gap'):
+    old = copy.deepcopy(p)
+    p['voice'] = copy.deepcopy(voice)
+    p['default_role_id'] = None
+    refresh_voice_fingerprints(p, old)
+
+
+def refresh_voice_fingerprints(p, old):
+    changed = False
+    for segment in p['segments']:
+        current = segment_fingerprint(segment, p)
+        if current != segment_fingerprint(segment, old):
+            segment.update(status='pending', error='', duration=0, audio_version=None)
+            changed = True
+        segment['fingerprint'] = current
+    if changed or p['voice'].get('gap') != old['voice'].get('gap'):
         invalidate_exports(p)
-    p['voice'] = voice
+
+
+def apply_project_voices(p, default_role_id, bindings, refresh_role_ids=None):
+    old = copy.deepcopy(p)
+    apply_bindings(p, default_role_id, bindings, read_presets(), refresh_role_ids=refresh_role_ids)
+    refresh_voice_fingerprints(p, old)
+    def role_metadata(project):
+        values = []
+        for segment in project['segments']:
+            role_id, role = resolved_role(segment, project)
+            values.append((role_id, role['name'] if role else None))
+        return values
+    if role_metadata(p) != role_metadata(old):
+        invalidate_exports(p)
+    return p
 
 
 def mutate_project(p, action, d):
@@ -494,15 +612,15 @@ def mutate_project(p, action, d):
         overrides = d.get('overrides', {})
         if set(overrides) - {'speed', 'seed', 'text_lang', 'reference', 'prompt', 'prompt_lang'}:
             raise ValueError('包含不支持的片段参数')
-        voice = dict(p['voice'], **overrides)
+        voice = dict(effective_voice(s, p), **overrides)
         validate_voice(voice)
         audio = project_dir(p['id']) / (s['id'] + '.wav')
         if s['status'] == 'done' and audio.is_file():
             s['previous'] = {k: copy.deepcopy(v) for k, v in s.items() if k != 'previous'}
-            s['previous']['fingerprint'] = segment_fingerprint(s, p['voice'])
+            s['previous']['fingerprint'] = segment_fingerprint(s, p)
             shutil.copyfile(str(audio), str(audio.with_name(s['id'] + '-previous.wav')))
         s.update(text=text, overrides=overrides, status='pending', error='', duration=0)
-        s['fingerprint'] = segment_fingerprint(s, p['voice'])
+        s['fingerprint'] = segment_fingerprint(s, p)
         invalidate_exports(p)
     else:
         raise ValueError('未知编辑操作')
@@ -638,7 +756,54 @@ def read_presets():
     return json.loads(path.read_text(encoding='utf-8')) if path.exists() else []
 
 
-def save_preset(voice, preset_id=None):
+def validated_role_image(value):
+    if not isinstance(value, str):
+        raise ValueError('角色图片路径必须是文字')
+    if not value:
+        return ''
+    path = Path(value).expanduser()
+    if not path.is_absolute() or not path.is_file() or is_link_or_reparse(path):
+        raise ValueError('请选择存在的本机图片文件')
+    if path.suffix.casefold() not in IMAGE_KINDS['avatar'] or path.stat().st_size > 20_000_000:
+        raise ValueError('角色图片需为 PNG、JPEG、WebP 或 GIF，且小于 20MB')
+    with path.open('rb') as source:
+        header = source.read(16)
+    signatures = (header.startswith(b'\x89PNG\r\n\x1a\n'), header.startswith(b'\xff\xd8\xff'),
+                  header.startswith((b'GIF87a', b'GIF89a')),
+                  header.startswith(b'RIFF') and header[8:12] == b'WEBP')
+    if not any(signatures):
+        raise ValueError('图片内容不是受支持的图片格式')
+    return str(path.resolve())
+
+
+def validated_profile(profile):
+    if not isinstance(profile, dict):
+        raise ValueError('角色个人属性必须是对象')
+    description = profile.get('description', '')
+    tags = profile.get('tags', [])
+    color = profile.get('color', '#287f78')
+    if not isinstance(description, str) or len(description) > 4000:
+        raise ValueError('角色描述最多 4000 字')
+    if not isinstance(tags, list) or len(tags) > 20 or any(not isinstance(tag, str) or not tag.strip() or len(tag) > 40 for tag in tags):
+        raise ValueError('角色标签最多 20 个，每个 1–40 字')
+    if not isinstance(color, str) or not re.fullmatch(r'#[0-9a-fA-F]{6}', color):
+        raise ValueError('角色颜色无效')
+    return {'description': description.strip(), 'tags': list(dict.fromkeys(tag.strip() for tag in tags)),
+            'color': color, 'avatar': validated_role_image(profile.get('avatar', '')),
+            'portrait': validated_role_image(profile.get('portrait', ''))}
+
+
+def write_presets(presets):
+    DATA.mkdir(exist_ok=True)
+    temp = DATA / ('voice_presets.' + uuid.uuid4().hex + '.tmp')
+    try:
+        temp.write_text(json.dumps(presets, ensure_ascii=False, indent=2), encoding='utf-8')
+        os.replace(str(temp), str(DATA / 'voice_presets.json'))
+    finally:
+        temp.unlink(missing_ok=True)
+
+
+def save_preset(voice, preset_id=None, profile=None):
     voice = copy.deepcopy(voice)
     voice['name'] = str(voice.get('name', '')).strip()
     if not voice['name'] or len(voice['name']) > 80:
@@ -651,15 +816,36 @@ def save_preset(voice, preset_id=None):
     if any(p['name'] == voice['name'] and p['id'] != preset_id for p in presets):
         raise ValueError('已有同名预设，请改名另存，或选中原预设后点击“更新所选预设”')
     record = {'id': preset_id or uuid.uuid4().hex, 'name': voice['name'], 'voice': voice}
+    record['profile'] = validated_profile(profile if profile is not None else (selected or {}).get('profile', {}))
     if selected is None:
         presets.append(record)
     else:
         presets[presets.index(selected)] = record
-    DATA.mkdir(exist_ok=True)
-    temp = DATA / 'voice_presets.tmp'
-    temp.write_text(json.dumps(presets, ensure_ascii=False, indent=2), encoding='utf-8')
-    os.replace(str(temp), str(DATA / 'voice_presets.json'))
+    write_presets(presets)
     return record
+
+
+def delete_preset(preset_id):
+    presets = read_presets()
+    if not any(record['id'] == preset_id for record in presets):
+        raise ValueError('该角色不存在，请刷新角色列表')
+    write_presets([record for record in presets if record['id'] != preset_id])
+    return {'ok': True}
+
+
+def role_image(preset_id, kind):
+    if kind not in IMAGE_KINDS:
+        raise ValueError('角色图片类型无效')
+    record = next((record for record in read_presets() if record['id'] == preset_id), None)
+    if record is None:
+        raise ValueError('该角色不存在')
+    image = (record.get('profile') or {}).get(kind, '')
+    if not image:
+        raise ValueError('该角色尚未设置此图片')
+    path = Path(validated_role_image(image))
+    mime = {'.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+            '.webp': 'image/webp', '.gif': 'image/gif'}[path.suffix.casefold()]
+    return path, mime
 
 
 def rpc(path, payload=None, timeout=600):
@@ -689,9 +875,8 @@ def worker(pid, only=None):
         with LOCK:
             initial = read(pid)
             require_compiled(initial)
-            v = copy.deepcopy(initial['voice'])
-        rpc('/set_gpt_weights?' + urlencode({'weights_path': v['gpt']}))
-        rpc('/set_sovits_weights?' + urlencode({'weights_path': v['sovits']}))
+            require_bindings(initial)
+        loaded_models = None
         while not STOP.is_set():
             with LOCK:
                 p = read(pid)
@@ -700,12 +885,21 @@ def worker(pid, only=None):
                     break
                 s['status'], s['error'] = 'running', ''
                 sid = s['id']
-                build_tts_payload(s, p['voice'])  # Validate before committing running state.
-                speech, voice_snapshot = copy.deepcopy(s), copy.deepcopy(p['voice'])
+                build_tts_payload(s, p)  # Validate before committing running state.
+                speech, voice_snapshot = copy.deepcopy(s), copy.deepcopy(p)
                 save(p)
             success, error, duration = False, '', 0
             for attempt in range(3):
                 try:
+                    voice = effective_voice(speech, voice_snapshot)
+                    models = (voice['gpt'], voice['sovits'])
+                    if loaded_models != models:
+                        # Either RPC may partially change engine state before failing.
+                        # Invalidate first so a later role must reload both models.
+                        loaded_models = None
+                        rpc('/set_gpt_weights?' + urlencode({'weights_path': models[0]}))
+                        rpc('/set_sovits_weights?' + urlencode({'weights_path': models[1]}))
+                        loaded_models = models
                     raw, duration = infer_segment(speech, voice_snapshot, rpc)
                     target = project_dir(pid) / (sid + '.wav')
                     temp = target.with_suffix('.tmp')
@@ -722,6 +916,7 @@ def worker(pid, only=None):
                 s = next(s for s in p['segments'] if s['id'] == sid)
                 s.update(status='done' if success else 'failed', error='' if success else error, duration=duration)
                 if success: s['audio_version'] = uuid.uuid4().hex
+                if success: s['fingerprint'] = segment_fingerprint(s, p)
                 save(p)
             failures = 0 if success else failures + 1
             if failures >= 3:
@@ -903,8 +1098,12 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if u.path == '/':
                 path, mime = ROOT / 'index.html', 'text/html; charset=utf-8'
-            elif u.path in ('/studio.js', '/pcs-editor.js', '/segmentation.js', '/library.js', '/kudio.js', '/assets.js', '/studio.css'):
+            elif u.path in ('/studio.js', '/pcs-editor.js', '/segmentation.js', '/library.js', '/kudio.js', '/assets.js', '/rebuild.js', '/i18n.js', '/i18n-catalog.js', '/studio.css'):
                 path, mime = ROOT / u.path[1:], ('text/javascript; charset=utf-8' if u.path.endswith('.js') else 'text/css; charset=utf-8')
+            elif u.path == '/api/role-image':
+                if self.headers.get('Sec-Fetch-Site') == 'cross-site':
+                    raise ValueError('不允许其他网页读取角色图片')
+                path, mime = role_image(q['preset_id'][0], q['kind'][0])
             elif u.path == '/audio':
                 pid, sid = q['id'][0], q['segment'][0]
                 if not re.fullmatch('[a-f0-9]{32}', sid):
@@ -955,7 +1154,7 @@ class Handler(BaseHTTPRequestHandler):
                 with LOCK:
                     if LIFECYCLE:
                         raise ValueError('正在停止或退出，请等待当前操作完成')
-                self.reply(pick_local_path(d.get('kind'), d.get('initial', '')))
+                self.reply(pick_local_path(d.get('kind'), d.get('initial', ''), d.get('ui_language', 'zh')))
                 return
             if action in ('/api/engine-stop', '/api/exit'):
                 with LOCK:
@@ -1007,7 +1206,10 @@ class Handler(BaseHTTPRequestHandler):
                                 TRAINING_PROCESS = subprocess.Popen([str(ENGINE / 'runtime/python.exe'), '-I', '-u', str(ROOT / 'training_runner.py')], cwd=str(ENGINE), env=env, stdout=log, stderr=log, creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
                     self.reply({'url':'http://127.0.0.1:9874','message':'训练面板正在启动；实际训练请在面板中配置数据后启动。'}); return
                 if action == '/api/preset':
-                    self.reply(save_preset(d['voice'], d.get('preset_id')))
+                    self.reply(save_preset(d['voice'], d.get('preset_id'), d.get('profile')))
+                    return
+                if action == '/api/delete-preset':
+                    self.reply(delete_preset(d.get('preset_id')))
                     return
                 if action == '/api/create':
                     text = d['text']
@@ -1021,7 +1223,8 @@ class Handler(BaseHTTPRequestHandler):
                          'source_text': text, 'source_format': compiled['source_format'],
                          'source_hash': compiled['source_hash'], 'pcs_version': compiled['pcs_version'],
                          'ast': compiled['ast'], 'diagnostics': compiled['diagnostics'],
-                         'execution_plan': compiled['execution_plan'], 'limit': limit, 'schema_version': 2}
+                         'execution_plan': compiled['execution_plan'], 'limit': limit, 'schema_version': 2,
+                         'default_role_id': None, 'voice_bindings': {}, 'role_snapshots': {}}
                     save(p); self.reply(project_view(p)); return
                 if action == '/api/engine':
                     if PROCESS and PROCESS.poll() is None:
@@ -1053,7 +1256,7 @@ class Handler(BaseHTTPRequestHandler):
                 if action == '/api/project/source':
                     limit = int(d.get('limit', p.get('limit', 160)))
                     if not 40 <= limit <= 500: raise ValueError('分段长度应为 40–500')
-                    compiled = compile_source(d['text'], limit, voice=p['voice'],
+                    compiled = compile_source(d['text'], limit, voice=p,
                                                previous_segments=p['segments'],
                                                source_format=d.get('source_format', 'pcs' if p.get('source_format') == 'pcs' else 'txt'))
                     apply_compilation(p, compiled, d['text'], limit)
@@ -1081,6 +1284,7 @@ class Handler(BaseHTTPRequestHandler):
                     else: p['exports'] = list(dict.fromkeys(p.get('exports', []) + [filename]))
                 elif action == '/api/regenerate':
                     require_compiled(p)
+                    require_bindings(p)
                     if ACTIVE: raise ValueError('请先暂停当前队列，再单独重做片段')
                     rpc('/openapi.json', timeout=2)
                     s = next(s for s in p['segments'] if s['id'] == d['segment'])
@@ -1093,10 +1297,10 @@ class Handler(BaseHTTPRequestHandler):
                     s = next(s for s in p['segments'] if s['id'] == d['segment'])
                     previous = s.get('previous')
                     if not previous: raise ValueError('没有可恢复的上一版本')
-                    if previous.get('fingerprint') != segment_fingerprint(previous, p['voice']):
+                    if previous.get('fingerprint') != segment_fingerprint(previous, p):
                         raise ValueError('上一版音频的音色参数与当前作品不一致，请重新生成')
                     if p.get('source_format', 'legacy') != 'legacy' and any(
-                            previous.get(key) != s.get(key) for key in ('text', 'page', 'section', 'rate')):
+                            previous.get(key) != s.get(key) for key in ('text', 'page', 'section', 'rate', 'voice_label')):
                         raise ValueError('上一版音频与当前源稿不一致，请重新编译并生成')
                     location = {key: s.get(key) for key in ('source_start', 'source_end', 'chapter')}
                     backup = project_dir(pid) / (s['id'] + '-previous.wav')
@@ -1114,6 +1318,10 @@ class Handler(BaseHTTPRequestHandler):
                     invalidate_exports(p)
                 elif action == '/api/voice':
                     apply_voice(p, d['voice'])
+                elif action == '/api/project/voices':
+                    apply_project_voices(p, d.get('default_role_id', p.get('default_role_id')),
+                                         d.get('voice_bindings', p.get('voice_bindings', {})),
+                                         d.get('refresh_role_ids'))
                 elif action == '/api/segment':
                     mutate_project(p, 'edit-segment', d)
                 elif action == '/api/retry':
@@ -1123,7 +1331,10 @@ class Handler(BaseHTTPRequestHandler):
                 elif action == '/api/start':
                     if ACTIVE: raise ValueError('另一部作品正在生成，请先暂停它')
                     require_compiled(p)
-                    validate_voice(p['voice'])
+                    require_bindings(p)
+                    for segment in p['segments']:
+                        if segment['status'] == 'pending':
+                            validate_voice(effective_voice(segment, p))
                     rpc('/openapi.json', timeout=2)
                     if not any(s['status'] == 'pending' for s in p['segments']):
                         raise ValueError('没有待生成片段；失败片段请先点“重试失败”')

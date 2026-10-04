@@ -1,0 +1,714 @@
+{
+  "GPT 模型": {
+    "en": "GPT model",
+    "ja": "GPT モデル"
+  },
+  "SoVITS 模型": {
+    "en": "SoVITS model",
+    "ja": "SoVITS モデル"
+  },
+  "TXT 使用上方默认角色，全文由同一个声音朗读。": {
+    "en": "TXT uses the default character above for the entire text.",
+    "ja": "TXT は上のデフォルトキャラクターが全文を読み上げます。"
+  },
+  "Voice · 声线名称": {
+    "en": "Voice · Voice label",
+    "ja": "Voice · 声質ラベル"
+  },
+  "{count} 个朗读片段": {
+    "en": "{count} narration segments",
+    "ja": "朗読セグメント {count} 件"
+  },
+  "{count} 个片段": {
+    "en": "{count} segments",
+    "ja": "セグメント {count} 件"
+  },
+  "{count} 位角色": {
+    "en": "{count} characters",
+    "ja": "キャラクター {count} 人"
+  },
+  "{count} 种脚本声线": {
+    "en": "{count} script voice labels",
+    "ja": "スクリプトの声質ラベル {count} 種"
+  },
+  "{count} 种脚本声线 · {pauses} 处停顿 · 详细结构可按需展开。": {
+    "en": "{count} voice labels · {pauses} pauses · Expand for details.",
+    "ja": "声質ラベル {count} 種 · ポーズ {pauses} か所 · 必要に応じて詳細を開けます。"
+  },
+  "{done} / {count} 段已完成": {
+    "en": "{done} / {count} segments complete",
+    "ja": "{done} / {count} セグメント完了"
+  },
+  "{done}/{count} 段": {
+    "en": "{done}/{count} segments",
+    "ja": "{done}/{count} セグメント"
+  },
+  "{format} · {count} 字": {
+    "en": "{format} · {count} characters",
+    "ja": "{format} · {count} 文字"
+  },
+  "{name} · {count} 个片段": {
+    "en": "{name} · {count} segments",
+    "ja": "{name} · {count} セグメント"
+  },
+  "{name} · 作品保留": {
+    "en": "{name} · Saved with this project",
+    "ja": "{name} · 作品に保存済み"
+  },
+  "{name}已填入。核对后点击“应用配置到当前作品”。": {
+    "en": "{name} selected. Review it, then choose “Apply settings to this project”.",
+    "ja": "{name} を入力しました。確認後「設定を現在の作品に適用」を押してください。"
+  },
+  "{name}已填入，同时找到 {names}。核对后点击“应用配置到当前作品”。": {
+    "en": "{name} selected; also found {names}. Review them, then choose “Apply settings to this project”.",
+    "ja": "{name} を入力し、{names} も見つかりました。確認後「設定を現在の作品に適用」を押してください。"
+  },
+  "{name}的头像": {
+    "en": "{name}'s avatar",
+    "ja": "{name} のアバター"
+  },
+  "{name}的形象": {
+    "en": "{name}'s character portrait",
+    "ja": "{name} のキャラクター画像"
+  },
+  "“{name}”已保存。到文本页为作品安排配音。": {
+    "en": "“{name}” saved. Assign it to a project on the Text page.",
+    "ja": "「{name}」を保存しました。テキストページで作品の配役を設定できます。"
+  },
+  "中文": {
+    "en": "Chinese",
+    "ja": "中国語"
+  },
+  "为 {label} 绑定角色": {
+    "en": "Assign a character to {label}",
+    "ja": "{label} にキャラクターを割り当てる"
+  },
+  "为这个声音写一段介绍。": {
+    "en": "Write an introduction for this voice.",
+    "ja": "この声の紹介を書いてください。"
+  },
+  "主动更新作品内已保存的声音配置，只同步仍在角色库中的角色": {
+    "en": "Update this project's saved voice settings from characters still in the library.",
+    "ja": "ライブラリに残っているキャラクターの設定を、作品内の保存済み音声設定に反映します。"
+  },
+  "从已扫描文件中选择 GPT 模型": {
+    "en": "Choose a GPT model from scanned files",
+    "ja": "スキャン済みファイルから GPT モデルを選択"
+  },
+  "从已扫描文件中选择 SoVITS 模型": {
+    "en": "Choose a SoVITS model from scanned files",
+    "ja": "スキャン済みファイルから SoVITS モデルを選択"
+  },
+  "从已扫描文件中选择参考音频": {
+    "en": "Choose reference audio from scanned files",
+    "ja": "スキャン済みファイルから参照音声を選択"
+  },
+  "从文字，到听得见的作品": {
+    "en": "Turn text into something you can hear",
+    "ja": "文字から、耳で楽しむ作品へ"
+  },
+  "估算": {
+    "en": "Estimated",
+    "ja": "推定"
+  },
+  "估算时长": {
+    "en": "Estimated duration",
+    "ja": "推定時間"
+  },
+  "作品及音频已恢复": {
+    "en": "Project and audio restored",
+    "ja": "作品と音声を復元しました"
+  },
+  "作品名不匹配，未删除": {
+    "en": "The project name does not match. Nothing was deleted.",
+    "ja": "作品名が一致しないため、削除しませんでした"
+  },
+  "作品回收站 ({count})": {
+    "en": "Project trash ({count})",
+    "ja": "作品のごみ箱 ({count})"
+  },
+  "作品导出": {
+    "en": "Export project",
+    "ja": "作品を書き出す"
+  },
+  "作品已移入回收站": {
+    "en": "Project moved to trash",
+    "ja": "作品をごみ箱に移動しました"
+  },
+  "作品文件已永久删除，空间已释放": {
+    "en": "Project files permanently deleted; disk space freed",
+    "ja": "作品ファイルを完全に削除し、空き容量を確保しました"
+  },
+  "你的声音阵容，从这里开始": {
+    "en": "Start building your voice cast here",
+    "ja": "ここから、あなたの声のキャストを作りましょう"
+  },
+  "你的配音阵容": {
+    "en": "Your voice cast",
+    "ja": "あなたの声のキャスト"
+  },
+  "保存并设为默认角色": {
+    "en": "Save and set as default character",
+    "ja": "保存してデフォルトキャラクターに設定"
+  },
+  "保存文本后，即可为这部作品安排角色。": {
+    "en": "Save the text to start assigning characters to this project.",
+    "ja": "テキストを保存すると、この作品の配役を設定できます。"
+  },
+  "保存模型、参考台词和角色形象，让声音在不同作品间复用。": {
+    "en": "Save models, reference lines and character artwork to reuse voices across projects.",
+    "ja": "モデル、参照セリフ、キャラクター画像を保存して、複数の作品で声を再利用できます。"
+  },
+  "保存角色安排": {
+    "en": "Save casting",
+    "ja": "配役を保存"
+  },
+  "修改尚未保存。保存后可在文本页为作品安排配音。": {
+    "en": "Changes are unsaved. Save them to assign this voice on the Text page.",
+    "ja": "変更は未保存です。保存後、テキストページで作品にこの声を割り当てられます。"
+  },
+  "先应用文本修改，再保存角色安排。": {
+    "en": "Apply the text changes before saving the casting.",
+    "ja": "テキストの変更を適用してから、配役を保存してください。"
+  },
+  "先选择或创建一本有声书，再继续这个步骤": {
+    "en": "Select or create a project before continuing",
+    "ja": "オーディオブックを選択または作成してから続けてください"
+  },
+  "全部音频生成完成后，可导出 WAV、字幕和时间轴。分组导出在推理页的高级工具中。": {
+    "en": "Once all audio is generated, export WAV, subtitles and a timeline. Group exports are in the Generate page's advanced tools.",
+    "ja": "音声の生成が完了すると、WAV、字幕、タイムラインを書き出せます。グループ別の書き出しは、音声生成ページの詳細ツールにあります。"
+  },
+  "创作流程": {
+    "en": "Creation workflow",
+    "ja": "制作の流れ"
+  },
+  "删除角色“{name}”？已绑定的作品会保留声音配置。": {
+    "en": "Delete character “{name}”? Projects using this character will keep their saved voice settings.",
+    "ja": "キャラクター「{name}」を削除しますか？割り当て済みの作品には音声設定が残ります。"
+  },
+  "前往推理工作区": {
+    "en": "Go to the Generate workspace",
+    "ja": "音声生成ワークスペースへ"
+  },
+  "单角色配音": {
+    "en": "Single-character narration",
+    "ja": "単一キャラクターで朗読"
+  },
+  "去安排文本与角色": {
+    "en": "Prepare text and casting",
+    "ja": "テキストと配役を準備"
+  },
+  "参考音频": {
+    "en": "Reference audio",
+    "ja": "参照音声"
+  },
+  "同步角色库配置": {
+    "en": "Sync character library settings",
+    "ja": "キャラクターライブラリの設定を同期"
+  },
+  "回到文本工作区": {
+    "en": "Back to the Text workspace",
+    "ja": "テキストワークスペースに戻る"
+  },
+  "声": {
+    "en": "V",
+    "ja": "声"
+  },
+  "声线 · {label}": {
+    "en": "Voice · {label}",
+    "ja": "声質 · {label}"
+  },
+  "声音时间轴": {
+    "en": "Audio timeline",
+    "ja": "音声タイムライン"
+  },
+  "多语种": {
+    "en": "Multilingual",
+    "ja": "多言語"
+  },
+  "完成": {
+    "en": "Complete",
+    "ja": "完了"
+  },
+  "实测": {
+    "en": "Measured",
+    "ja": "実測"
+  },
+  "实测总时长 {duration} · 包含段间停顿": {
+    "en": "Measured duration {duration} · Includes pauses between segments",
+    "ja": "実測の合計時間 {duration} · セグメント間のポーズを含む"
+  },
+  "实测时长": {
+    "en": "Measured duration",
+    "ja": "実測時間"
+  },
+  "导入或输入文本后，预览你的朗读片段。": {
+    "en": "Import or enter text to preview narration segments.",
+    "ja": "テキストを読み込むか入力して、朗読セグメントをプレビューできます。"
+  },
+  "将作品“{name}”及其音频、导出文件移入Kudio 回收站？\n可在回收站恢复，暂不释放磁盘空间。": {
+    "en": "Move “{name}”, its audio and exports to Kudio trash?\nYou can restore them later. This does not free disk space yet.",
+    "ja": "作品「{name}」と音声、書き出したファイルを Kudio のごみ箱に移動しますか？\n後から復元できます。現時点では空き容量は増えません。"
+  },
+  "尚未导出作品。完成生成后，在推理页选择导出格式。": {
+    "en": "No exports yet. After generation, choose an export format on the Generate page.",
+    "ja": "まだ書き出していません。生成完了後、音声生成ページで書き出し形式を選んでください。"
+  },
+  "展开作品目录 ＋": {
+    "en": "Show project library ＋",
+    "ja": "作品一覧を開く ＋"
+  },
+  "已保存": {
+    "en": "Saved",
+    "ja": "保存済み"
+  },
+  "已保存角色": {
+    "en": "Saved character",
+    "ja": "保存済みキャラクター"
+  },
+  "已同步角色库配置；未改变的片段保留音频": {
+    "en": "Character settings synced; unchanged segments keep their audio",
+    "ja": "キャラクター設定を同期しました。変更のないセグメントの音声は保持します"
+  },
+  "已安排": {
+    "en": "Assigned",
+    "ja": "設定済み"
+  },
+  "已导出": {
+    "en": "Exported",
+    "ja": "書き出し済み"
+  },
+  "已将“{name}”设为当前作品默认角色": {
+    "en": "“{name}” is now this project's default character",
+    "ja": "「{name}」を現在の作品のデフォルトキャラクターに設定しました"
+  },
+  "已归档 · {done}/{count} 段": {
+    "en": "Archived · {done}/{count} segments",
+    "ja": "アーカイブ済み · {done}/{count} セグメント"
+  },
+  "已选择文件。核对后点击“应用配置到当前作品”。": {
+    "en": "File selected. Review it, then choose “Apply settings to this project”.",
+    "ja": "ファイルを選択しました。確認後「設定を現在の作品に適用」を押してください。"
+  },
+  "应用文本修改": {
+    "en": "Apply text changes",
+    "ja": "テキストの変更を適用"
+  },
+  "形象已选择，保存角色后显示图片。": {
+    "en": "Artwork selected. Save the character to display the image.",
+    "ja": "画像を選択しました。キャラクターを保存すると画像が表示されます。"
+  },
+  "待安排": {
+    "en": "Unassigned",
+    "ja": "未設定"
+  },
+  "所有音频已经完成，时长来自实际音频。": {
+    "en": "All audio is complete. Durations come from the generated audio.",
+    "ja": "すべての音声が完成しています。時間は実際の音声に基づいています。"
+  },
+  "找到 {gpt} 个 GPT 模型、{sovits} 个 SoVITS 模型、{reference} 个参考音频": {
+    "en": "Found {gpt} GPT models, {sovits} SoVITS models and {reference} reference audio files",
+    "ja": "GPT モデル {gpt} 件、SoVITS モデル {sovits} 件、参照音声 {reference} 件が見つかりました"
+  },
+  "把故事，交给合适的声音": {
+    "en": "Give your story the right voices",
+    "ja": "物語を、ふさわしい声に託す"
+  },
+  "按自然段、标点与每段字数整理文本，全文使用默认角色。": {
+    "en": "Text is segmented by paragraphs, punctuation and length. The default character reads the entire project.",
+    "ja": "段落、句読点、文字数でテキストを整理し、デフォルトキャラクターが全文を読み上げます。"
+  },
+  "按顺序整理正文与控制指令，发现问题时可点击提示回到原文。": {
+    "en": "Text and controls are processed in order. Select an issue to return to its source.",
+    "ja": "本文と制御指示を順に整理します。問題の表示を押すと、該当箇所に戻れます。"
+  },
+  "控制指令会整理为页码、停顿、语速、章节和声线，不参与朗读。": {
+    "en": "Controls become page, pause, speed, section and voice instructions; they are not read aloud.",
+    "ja": "制御指示はページ番号、ポーズ、速度、章、声質に整理され、読み上げられません。"
+  },
+  "控制脚本已选择。正文与页码、停顿、语速、章节、声线指令在这里共同编排。": {
+    "en": "Control script selected. Arrange text, pages, pauses, speed, sections and voice labels together here.",
+    "ja": "制御スクリプトを選択しています。本文とページ番号、ポーズ、速度、章、声質の指示をここで編集できます。"
+  },
+  "推理": {
+    "en": "Generate",
+    "ja": "音声生成"
+  },
+  "收藏声音与形象，组成你的专属配音阵容。": {
+    "en": "Collect voices and artwork to build your own cast.",
+    "ja": "声と画像を集めて、あなただけのキャストを作りましょう。"
+  },
+  "收起作品目录 −": {
+    "en": "Hide project library −",
+    "ja": "作品一覧を閉じる −"
+  },
+  "整理正文、预览分段，为每种声线安排角色。": {
+    "en": "Prepare text, preview segments and assign a character to each voice label.",
+    "ja": "本文を整理し、セグメントを確認して、各声質にキャラクターを割り当てます。"
+  },
+  "文件已填入，保存角色后生效。": {
+    "en": "File selected. Save the character to apply it.",
+    "ja": "ファイルを入力しました。キャラクターを保存すると反映されます。"
+  },
+  "文件已填入，同时找到 {names}。保存角色后生效。": {
+    "en": "File selected; also found {names}. Save the character to apply them.",
+    "ja": "ファイルを入力し、{names} も見つかりました。キャラクターを保存すると反映されます。"
+  },
+  "文字修改尚未应用，原有音频会保留到应用时。": {
+    "en": "Text changes are not yet applied. Existing audio stays until you apply them.",
+    "ja": "テキストの変更はまだ適用されていません。適用するまで既存の音声は保持されます。"
+  },
+  "文字修改待应用 · ": {
+    "en": "Unapplied text changes · ",
+    "ja": "テキスト変更は未適用 · "
+  },
+  "文字已与当前作品同步。": {
+    "en": "Text is synced with the current project.",
+    "ja": "テキストは現在の作品と同期しています。"
+  },
+  "文字待应用": {
+    "en": "Text changes pending",
+    "ja": "テキストは未適用"
+  },
+  "文字有待修正的问题，请点击下方提示定位。": {
+    "en": "Text needs corrections. Select an issue below to locate it.",
+    "ja": "テキストに修正が必要です。下の問題を押して該当箇所を確認してください。"
+  },
+  "文字有未应用的修改。": {
+    "en": "Text has unapplied changes.",
+    "ja": "テキストに未適用の変更があります。"
+  },
+  "文字需要修正": {
+    "en": "Text needs corrections",
+    "ja": "テキストの修正が必要"
+  },
+  "文本": {
+    "en": "Text",
+    "ja": "テキスト"
+  },
+  "文本准备": {
+    "en": "Text preparation",
+    "ja": "テキストの準備"
+  },
+  "文本整理": {
+    "en": "Text processing",
+    "ja": "テキストの整理"
+  },
+  "新作品": {
+    "en": "New project",
+    "ja": "新しい作品"
+  },
+  "新建角色": {
+    "en": "New character",
+    "ja": "新しいキャラクター"
+  },
+  "日语": {
+    "en": "Japanese",
+    "ja": "日本語"
+  },
+  "普通文本会按自然段、标点与长度整理为朗读片段。": {
+    "en": "Plain text is split into narration segments by paragraphs, punctuation and length.",
+    "ja": "通常のテキストは、段落、句読点、長さに応じて朗読セグメントに分割されます。"
+  },
+  "朗读片段": {
+    "en": "Narration segments",
+    "ja": "朗読セグメント"
+  },
+  "未命名角色": {
+    "en": "Unnamed character",
+    "ja": "名前のないキャラクター"
+  },
+  "本地声音角色": {
+    "en": "Local voice character",
+    "ja": "ローカル音声キャラクター"
+  },
+  "本地运行状态": {
+    "en": "Local runtime status",
+    "ja": "ローカルの実行状態"
+  },
+  "正在保存…": {
+    "en": "Saving…",
+    "ja": "保存中…"
+  },
+  "正在扫描本机素材…": {
+    "en": "Scanning local assets…",
+    "ja": "ローカル素材をスキャン中…"
+  },
+  "正在按顺序生成音频。暂停会等待当前片段完成。": {
+    "en": "Generating audio in sequence. Pausing waits for the current segment to finish.",
+    "ja": "音声を順番に生成しています。一時停止は現在のセグメントが終わってから行われます。"
+  },
+  "正在整理": {
+    "en": "Processing",
+    "ja": "整理中"
+  },
+  "此角色有未保存的修改。": {
+    "en": "This character has unsaved changes.",
+    "ja": "このキャラクターに未保存の変更があります。"
+  },
+  "每个片段使用对应角色的模型和参考台词，可以试听后单独重做。": {
+    "en": "Each segment uses its assigned character's models and reference lines. Preview it and regenerate it individually.",
+    "ja": "各セグメントは、割り当てたキャラクターのモデルと参照セリフを使用します。試聴して個別に再生成できます。"
+  },
+  "永久删除“{name}”的全部作品文件，无法恢复。\n请输入完整作品名称确认：": {
+    "en": "Permanently delete all files for “{name}”? This cannot be undone.\nEnter the full project name to confirm:",
+    "ja": "「{name}」の全作品ファイルを完全に削除します。元に戻せません。\n確認のため作品名を省略せず入力してください："
+  },
+  "没有匹配作品": {
+    "en": "No matching projects",
+    "ja": "一致する作品はありません"
+  },
+  "没有找到匹配的角色": {
+    "en": "No matching characters",
+    "ja": "一致するキャラクターはありません"
+  },
+  "没有指定额外声线，全文使用默认角色。": {
+    "en": "No additional voice labels are specified. The default character reads the entire text.",
+    "ja": "追加の声質は指定されていません。デフォルトキャラクターが全文を読み上げます。"
+  },
+  "沿用作品当前音色": {
+    "en": "Keep this project's current voice",
+    "ja": "作品の現在の声を使用"
+  },
+  "点击“预览分段”查看修改后的朗读片段。": {
+    "en": "Choose “Preview segments” to see the updated narration segments.",
+    "ja": "「セグメントをプレビュー」を押して、変更後の朗読セグメントを確認してください。"
+  },
+  "点击任一步骤，查看简洁的处理详情。": {
+    "en": "Select any step to see a concise explanation.",
+    "ja": "各ステップを押すと、処理の概要を確認できます。"
+  },
+  "生成与交付": {
+    "en": "Generation and delivery",
+    "ja": "生成と書き出し"
+  },
+  "生成中": {
+    "en": "Generating",
+    "ja": "生成中"
+  },
+  "生成完成": {
+    "en": "Generated",
+    "ja": "生成完了"
+  },
+  "生成完成的片段使用真实时长，其余时长为估算。": {
+    "en": "Generated segments use actual durations. The rest are estimated.",
+    "ja": "生成済みのセグメントは実際の時間、それ以外は推定時間を使用します。"
+  },
+  "目录已更改，点击“保存目录并扫描”查看候选文件。": {
+    "en": "Folder changed. Choose “Save folders and scan” to view candidate files.",
+    "ja": "フォルダーを変更しました。「フォルダーを保存してスキャン」を押して候補ファイルを確認してください。"
+  },
+  "目录已选择，点击“保存目录并扫描”查看候选文件。": {
+    "en": "Folder selected. Choose “Save folders and scan” to view candidate files.",
+    "ja": "フォルダーを選択しました。「フォルダーを保存してスキャン」を押して候補ファイルを確認してください。"
+  },
+  "第 {page} 页": {
+    "en": "Page {page}",
+    "ja": "{page} ページ"
+  },
+  "等待": {
+    "en": "Waiting",
+    "ja": "待機中"
+  },
+  "管理引擎、模型素材与运行状态。": {
+    "en": "Manage the engine, model assets and runtime status.",
+    "ja": "エンジン、モデル素材、実行状態を管理します。"
+  },
+  "素材扫描未完成：{error}。可指定目录后重试。": {
+    "en": "Asset scan failed: {error}. Choose a folder and try again.",
+    "ja": "素材のスキャンが完了しませんでした：{error}。フォルダーを指定して再試行してください。"
+  },
+  "素材扫描未完成：{error}。请检查目录后重试。": {
+    "en": "Asset scan failed: {error}. Check the folders and try again.",
+    "ja": "素材のスキャンが完了しませんでした：{error}。フォルダーを確認して再試行してください。"
+  },
+  "编辑文本": {
+    "en": "Edit text",
+    "ja": "テキストを編集"
+  },
+  "编辑角色": {
+    "en": "Edit character",
+    "ja": "キャラクターを編集"
+  },
+  "脚本声线": {
+    "en": "Script voice label",
+    "ja": "スクリプトの声質"
+  },
+  "英语": {
+    "en": "English",
+    "ja": "英語"
+  },
+  "角色“{name}”已保存": {
+    "en": "Character “{name}” saved",
+    "ja": "キャラクター「{name}」を保存しました"
+  },
+  "角色保存声音与形象，在文本工作区决定谁来朗读。": {
+    "en": "Characters store voices and artwork. Choose who reads in the Text workspace.",
+    "ja": "キャラクターに声と画像を保存し、テキストワークスペースで誰が読むかを決めます。"
+  },
+  "角色安排": {
+    "en": "Casting",
+    "ja": "配役"
+  },
+  "角色安排已保存。每段会使用对应角色的模型与参考音频。": {
+    "en": "Casting saved. Each segment uses its character's models and reference audio.",
+    "ja": "配役を保存しました。各セグメントは対応するキャラクターのモデルと参照音声を使用します。"
+  },
+  "角色安排已保存；未改变的片段保留音频": {
+    "en": "Casting saved; unchanged segments keep their audio",
+    "ja": "配役を保存しました。変更のないセグメントの音声は保持します"
+  },
+  "角色安排有未保存的修改。保存后仅受影响的片段需要重新生成。": {
+    "en": "Casting has unsaved changes. Only affected segments need regeneration after saving.",
+    "ja": "配役に未保存の変更があります。保存後、影響するセグメントだけ再生成が必要です。"
+  },
+  "角色已从角色库移除，已绑定作品的配音保留": {
+    "en": "Character removed from the library; projects keep their assigned voice settings",
+    "ja": "ライブラリからキャラクターを削除しました。作品に割り当て済みの音声設定は保持されます"
+  },
+  "角色已载入。修改后保存，可在文本页安排配音。": {
+    "en": "Character loaded. Save your changes to use it for casting on the Text page.",
+    "ja": "キャラクターを読み込みました。変更を保存すると、テキストページで配役を設定できます。"
+  },
+  "让每个声音，都有自己的角色": {
+    "en": "Give every voice its own character",
+    "ja": "すべての声に、それぞれのキャラクターを"
+  },
+  "试听": {
+    "en": "Preview audio",
+    "ja": "試聴"
+  },
+  "试试其他名称或声线标签。": {
+    "en": "Try another name or voice tag.",
+    "ja": "別の名前や声質タグを試してください。"
+  },
+  "语音生成": {
+    "en": "Audio generation",
+    "ja": "音声生成"
+  },
+  "请为每种脚本声线选择角色": {
+    "en": "Choose a character for every script voice label",
+    "ja": "スクリプトの各声質にキャラクターを選んでください"
+  },
+  "请先创建或选择作品": {
+    "en": "Create or select a project first",
+    "ja": "先に作品を作成または選択してください"
+  },
+  "请先在文本页保存角色安排": {
+    "en": "Save casting on the Text page first",
+    "ja": "先にテキストページで配役を保存してください"
+  },
+  "请先在文本页完成默认角色和声线绑定": {
+    "en": "Complete the default character and voice assignments on the Text page first",
+    "ja": "先にテキストページでデフォルトキャラクターと声質の割り当てを設定してください"
+  },
+  "请先应用文本修改": {
+    "en": "Apply text changes first",
+    "ja": "先にテキストの変更を適用してください"
+  },
+  "请先选择要更新的角色": {
+    "en": "Select a character to update first",
+    "ja": "先に更新するキャラクターを選択してください"
+  },
+  "请选择并保存默认角色，让旁白与普通文本拥有自己的声音。": {
+    "en": "Select and save a default character for narration and plain text.",
+    "ja": "ナレーションと通常のテキストに使うデフォルトキャラクターを選択して保存してください。"
+  },
+  "请选择配音角色": {
+    "en": "Choose a voice character",
+    "ja": "朗読キャラクターを選択"
+  },
+  "请选择默认角色": {
+    "en": "Choose a default character",
+    "ja": "デフォルトキャラクターを選択"
+  },
+  "还有 {count} 种声线等待绑定角色。": {
+    "en": "{count} voice labels still need characters.",
+    "ja": "あと {count} 種の声質にキャラクターの割り当てが必要です。"
+  },
+  "还没有作品。新建一部，开始让文字发声。": {
+    "en": "No projects yet. Create one to give your text a voice.",
+    "ja": "まだ作品はありません。新しく作成して、文字に声を与えましょう。"
+  },
+  "这里只显示前 60 段，推理页可搜索并查看全部 {count} 段。": {
+    "en": "Showing the first 60 segments. Search and view all {count} on the Generate page.",
+    "ja": "最初の 60 セグメントを表示しています。音声生成ページで全 {count} セグメントを検索・確認できます。"
+  },
+  "进入推理工作区": {
+    "en": "Enter the Generate workspace",
+    "ja": "音声生成ワークスペースへ"
+  },
+  "连接引擎后，回到文本工作区准备作品。": {
+    "en": "Connect the engine, then return to the Text workspace to prepare your project.",
+    "ja": "エンジンに接続したら、テキストワークスペースに戻って作品を準備してください。"
+  },
+  "连接本地的声音引擎": {
+    "en": "Connect your local voice engine",
+    "ja": "ローカルの音声エンジンに接続"
+  },
+  "选择模型和参考音频，保存你的第一个角色。": {
+    "en": "Choose models and reference audio to save your first character.",
+    "ja": "モデルと参照音声を選んで、最初のキャラクターを保存してください。"
+  },
+  "选择要恢复或清理的作品": {
+    "en": "Choose a project to restore or delete",
+    "ja": "復元または削除する作品を選択"
+  },
+  "逐段生成，随时试听，完成后导出作品。": {
+    "en": "Generate segment by segment, preview anytime, and export when ready.",
+    "ja": "セグメントごとに生成し、いつでも試聴して、完成したら作品を書き出せます。"
+  },
+  "配置 / 引擎": {
+    "en": "Settings / Engine",
+    "ja": "設定 / エンジン"
+  },
+  "配置 / 角色": {
+    "en": "Settings / Characters",
+    "ja": "設定 / キャラクター"
+  },
+  "配音尚未准备好：{errors}": {
+    "en": "Casting is not ready: {errors}",
+    "ja": "配役の準備ができていません：{errors}"
+  },
+  "阅读预览": {
+    "en": "Reading preview",
+    "ja": "読み上げ内容のプレビュー"
+  },
+  "需修正": {
+    "en": "Needs corrections",
+    "ja": "修正が必要"
+  },
+  "预览分段": {
+    "en": "Preview segments",
+    "ja": "セグメントをプレビュー"
+  },
+  "预览后查看朗读片段": {
+    "en": "Preview to see narration segments",
+    "ja": "プレビューすると朗読セグメントを確認できます"
+  },
+  "预计总时长 {duration} · 包含段间停顿，未生成的片段使用估算时长": {
+    "en": "Estimated duration {duration} · Includes pauses; ungenerated segments use estimates",
+    "ja": "推定の合計時間 {duration} · セグメント間のポーズを含み、未生成のセグメントは推定時間を使用します"
+  },
+  "默认角色": {
+    "en": "Default character",
+    "ja": "デフォルトキャラクター"
+  },
+  "默认角色朗读普通文本和未指定声线的内容。脚本指定的声线在文本页绑定到具体角色。": {
+    "en": "The default character reads plain text and text without a voice label. Assign script voice labels to characters on the Text page.",
+    "ja": "デフォルトキャラクターは通常のテキストと声質未指定の内容を読みます。スクリプトの声質はテキストページでキャラクターに割り当てます。"
+  },
+  "；GPT-SoVITS 目录已更改，请重启 Kudio 后再生成": {
+    "en": "; GPT-SoVITS folder changed. Restart Kudio before generating",
+    "ja": "。GPT-SoVITS のフォルダーを変更しました。生成する前に Kudio を再起動してください"
+  },
+  "；结果较多，仅显示前一部分": {
+    "en": "; many results found, showing the first batch",
+    "ja": "。結果が多いため、最初の一部のみ表示しています"
+  },
+  "{summary}{truncated}{restart}。": {
+    "en": "{summary}{truncated}{restart}.",
+    "ja": "{summary}{truncated}{restart}。"
+  }
+}
