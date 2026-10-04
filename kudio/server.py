@@ -945,11 +945,11 @@ class Handler(BaseHTTPRequestHandler):
             d = json.loads(self.rfile.read(size))
             action = self.path
             if action == '/api/pcs/parse':
-                self.reply(parse_source(d['text'], d.get('source_format', 'auto')))
+                self.reply(parse_source(d['text'], d.get('source_format', 'txt')))
                 return
             if action == '/api/pcs/compile':
                 self.reply(compile_source(d['text'], int(d.get('limit', 160)),
-                           voice=d.get('voice') or defaults(), source_format=d.get('source_format', 'auto')))
+                           voice=d.get('voice') or defaults(), source_format=d.get('source_format', 'txt')))
                 return
             if action == '/api/pick-path':
                 with LOCK:
@@ -1015,7 +1015,7 @@ class Handler(BaseHTTPRequestHandler):
                     limit = int(d.get('limit', 160))
                     if not 40 <= limit <= 500: raise ValueError('分段长度应为 40–500')
                     compiled = compile_source(text, limit, voice=defaults(),
-                                               source_format=d.get('source_format', 'auto'))
+                                               source_format=d.get('source_format', 'txt'))
                     p = {'id': uuid.uuid4().hex, 'title': d.get('title', '').strip() or '未命名作品',
                          'voice': defaults(), 'segments': compiled['segments'], 'error': '', 'exports': [],
                          'source_text': text, 'source_format': compiled['source_format'],
@@ -1055,7 +1055,7 @@ class Handler(BaseHTTPRequestHandler):
                     if not 40 <= limit <= 500: raise ValueError('分段长度应为 40–500')
                     compiled = compile_source(d['text'], limit, voice=p['voice'],
                                                previous_segments=p['segments'],
-                                               source_format=d.get('source_format', 'auto'))
+                                               source_format=d.get('source_format', 'pcs' if p.get('source_format') == 'pcs' else 'txt'))
                     apply_compilation(p, compiled, d['text'], limit)
                     for segment in p['segments']:
                         if segment['status'] == 'done' and not (project_dir(pid) / (segment['id'] + '.wav')).is_file():

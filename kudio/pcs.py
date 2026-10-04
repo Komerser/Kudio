@@ -175,16 +175,23 @@ def validate_ast(ast, source):
     return diagnostics
 
 
-def parse_source(text, source_format='auto'):
-    """Parse plain TXT or PCS and report structured diagnostics without TTS."""
-    if source_format not in ('auto', 'txt', 'pcs'):
-        raise ValueError('源码格式必须是 auto、txt 或 pcs')
+def parse_source(text, source_format='txt'):
+    """Use only the selected format; TXT never invokes the PCS lexer."""
+    if source_format not in ('txt', 'pcs'):
+        raise ValueError('源码格式必须是 txt 或 pcs，请明确选择文件格式')
+    if not isinstance(text, str):
+        raise ValueError('脚本源码必须是文字')
+    if source_format == 'txt':
+        ast = [{'type': 'text', 'text': text, 'source_start': 0, 'source_end': len(text)}] if text else []
+        return {'source_format': 'txt', 'ast': ast, 'diagnostics': [], 'valid': True,
+                'stats': {'text_nodes': len(ast), 'control_nodes': 0, 'errors': 0,
+                          'warnings': 0, 'info': 0, 'characters': len(text),
+                          'pages': 0, 'pauses': 0, 'rates': 0, 'sections': 0}}
     lexed = lex_source(text)
-    pcs = source_format == 'pcs' or any(t['kind'] == 'control' for t in lexed['tokens'])
     parsed = parse_tokens(lexed['tokens'], text)
     ast = parsed['ast']
     diagnostics = lexed['diagnostics'] + parsed['diagnostics'] + validate_ast(ast, text)
-    if pcs:
+    if source_format == 'pcs':
         for node in ast:
             if node['type'] != 'text':
                 continue
@@ -208,5 +215,5 @@ def parse_source(text, source_format='auto'):
              'characters': len(text)}
     for command, key in (('p', 'pages'), ('pause', 'pauses'), ('rate', 'rates'), ('section', 'sections')):
         stats[key] = sum(n['type'] == 'control' and n['command'] == command and n['valid'] for n in ast)
-    return {'source_format': 'pcs' if pcs else 'txt', 'ast': ast,
+    return {'source_format': source_format, 'ast': ast,
             'diagnostics': diagnostics, 'stats': stats, 'valid': stats['errors'] == 0}

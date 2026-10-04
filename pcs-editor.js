@@ -14,10 +14,16 @@ function scriptIsDirty(){return !!project&&!!scriptDrafts.get(project.id)?.dirty
 function scriptHasErrors(){return (scriptDraft().parse?.diagnostics||[]).some(d=>d.level==='error')}
 function scriptParsed(){const s=scriptDraft();return !!s.parse&&!s.parseBusy&&s.parse.valid!==false&&!scriptHasErrors()}
 function syncScriptOwner(){
- const key=scriptKey(),s=scriptDraft();
+ const key=scriptKey();let s=scriptDraft();
+ const refreshed=project&&!s.dirty&&(s.savedText!==projectSource(project)||s.savedFormat!==(project.source_format==='pcs'?'pcs':'txt')||s.savedLimit!==Number(project.limit||160));
+ if(refreshed){
+  // Another page may save a different format or limit without changing the
+  // source. Invalidate its old requests before replacing only a clean draft.
+  clearTimeout(scriptTimer);scriptTimer=null;s.request++;s.revision++;s=makeScriptDraft(project);scriptDrafts.set(key,s);
+ }
  if(scriptOwner!==key){clearTimeout(scriptTimer);scriptTimer=null;scriptOwner=key;$('source').value=s.text;$('sourceFormat').value=s.format;$('limit').value=s.limit;scriptView='raw';}
- else if(project&&!s.dirty&&s.savedText!==projectSource(project)){
-  const fresh=makeScriptDraft(project);scriptDrafts.set(key,fresh);if($('source').value!==fresh.text)$('source').value=fresh.text;
+ else if(refreshed){
+  if($('source').value!==s.text)$('source').value=s.text;if($('sourceFormat').value!==s.format)$('sourceFormat').value=s.format;if(Number($('limit').value)!==s.limit)$('limit').value=s.limit;
  }
  $('importCard').classList.remove('hidden');$('newProjectName').classList.toggle('hidden',!!project);$('create').classList.toggle('hidden',!!project);$('applyScript').classList.toggle('hidden',!project);
 }
@@ -43,16 +49,18 @@ function controlLabel(node){
 function scriptChip(node,clickable=true){const chip=document.createElement(clickable?'button':'span');chip.className='pcs-chip pcs-'+(node.command||node.type);chip.textContent=controlLabel(node);if(clickable){chip.type='button';chip.onclick=()=>selectScriptSpan(node);chip.title='点击定位原始脚本'}return chip}
 function setScriptText(id,text){if($(id).textContent!==text)$(id).textContent=text}
 function renderScriptView(){
- $('source').classList.toggle('hidden',scriptView!=='raw');$('scriptToolbar').classList.toggle('hidden',scriptView!=='raw');$('scriptVisual').classList.toggle('hidden',scriptView!=='visual');
+ const pcs=scriptDraft().format==='pcs';
+ $('source').classList.toggle('hidden',scriptView!=='raw');$('scriptToolbar').classList.toggle('hidden',scriptView!=='raw'||!pcs);$('scriptVisual').classList.toggle('hidden',scriptView!=='visual');
+ setScriptText('visualMode',pcs?'Visual · 控制预览':'Visual · 正文预览');$('scriptVisual').setAttribute('aria-label',pcs?'PCS 可视化预览':'TXT 正文预览');
  $('rawMode').classList.toggle('tab-active',scriptView==='raw');$('visualMode').classList.toggle('tab-active',scriptView==='visual');$('rawMode').setAttribute('aria-selected',String(scriptView==='raw'));$('visualMode').setAttribute('aria-selected',String(scriptView==='visual'));
 }
 function renderScriptParse(s){
- const parse=s.parse,ast=parse?.ast||[],key=JSON.stringify([scriptKey(),s.revision,s.parseBusy,parse]);
+ const pcs=s.format==='pcs',parse=s.parse,ast=parse?.ast||[],key=JSON.stringify([scriptKey(),s.format,s.revision,s.parseBusy,parse]);
  if($('scriptVisual').dataset.renderKey===key)return;$('scriptVisual').dataset.renderKey=key;
  const visual=$('scriptVisual'),nodes=$('astNodes'),diagnostics=$('parserDiagnostics');visual.replaceChildren();nodes.replaceChildren();diagnostics.replaceChildren();
- if(!parse){setScriptText('parserSummary',s.parseBusy?'正在解析…':'脚本尚未解析 · AST 和推理计划待更新');setScriptText('astJson','');const hint=document.createElement('p');hint.className='muted';hint.textContent='解析后显示正文与控制 Chip。';visual.append(hint);return}
+ if(!parse){setScriptText('parserSummary',s.parseBusy?(pcs?'正在解析 PCS…':'正在预览 TXT 分段…'):pcs?'PCS 尚未解析 · AST 和推理计划待更新':'TXT 尚未预览 · 自动分段计划待更新');setScriptText('astJson','');const hint=document.createElement('p');hint.className='muted';hint.textContent=pcs?'解析后显示正文与控制 Chip。':'TXT 只按自然语言自动分段，所有内容均作为正文。';visual.append(hint);return}
  const errors=(parse.diagnostics||[]).filter(d=>d.level==='error').length,warnings=(parse.diagnostics||[]).filter(d=>d.level==='warning').length,controls=ast.filter(n=>n.type==='control');
- setScriptText('parserSummary',`${errors?'发现 '+errors+' 个错误':'✓ 脚本语法有效'} · ${controls.filter(n=>n.command==='p').length} Page · ${controls.filter(n=>n.command==='pause').length} Pause · ${controls.filter(n=>n.command==='rate').length} Rate · ${controls.filter(n=>n.command==='section').length} Section · ${warnings} Warning`);
+ setScriptText('parserSummary',pcs?`${errors?'发现 '+errors+' 个错误':'✓ PCS 语法有效'} · ${controls.filter(n=>n.command==='p').length} Page · ${controls.filter(n=>n.command==='pause').length} Pause · ${controls.filter(n=>n.command==='rate').length} Rate · ${controls.filter(n=>n.command==='section').length} Section · ${warnings} Warning`:`${errors?'发现 '+errors+' 个错误':'✓ TXT 正文已读取'} · 按自然语言自动分段`);
  for(const d of parse.diagnostics||[]){const diagnostic=document.createElement('button');diagnostic.className='pcs-diagnostic '+d.level;const before=Array.from(s.text).slice(0,d.source_start||0).join(''),line=before.split('\n').length;diagnostic.textContent=`${(d.level||'info').toUpperCase()} · 第 ${line} 行 · ${d.message} (${d.code})`;diagnostic.onclick=()=>selectScriptSpan(d);diagnostics.append(diagnostic)}
  for(const [index,n] of ast.entries()){
   if(n.type==='control')visual.append(scriptChip(n));else{const text=document.createElement('span');text.className='pcs-text';text.textContent=n.text||'';visual.append(text)}
@@ -79,9 +87,11 @@ function renderScriptWorkspace(){
  if(loading||terminating||exited)return;syncScriptOwner();const s=scriptDraft(),busy=active===project?.id||s.applyBusy;
  renderScriptView();renderScriptParse(s);renderScriptPlan(s);
  const state=s.dirty?'SOURCE MODIFIED · 解析 / 计划 / 时间轴 / 导出待更新':scriptHasErrors()?'PARSER ERROR · 请修正源码':s.parseBusy?'PARSING':project?.timeline?.timing_status==='exact'?'EXACT TIMELINE · 可导出':project?.execution_plan?.length?'COMPILED':scriptParsed()?'PARSED':'SOURCE';setScriptText('scriptState',state);
- setScriptText('sourceNotice',project?.source_format==='legacy'?'旧项目音频安全保留。当前源码由旧片段重建；“应用并编译脚本”会显式转为脚本项目。':s.dirty?'修改只保存在本次页面的作品草稿中；应用后才重新编译。相同片段尽可能复用音频。':'原始脚本是唯一正文来源。控制标签用于 Page、Pause、Rate、Section，不参与朗读。');
+ const formatNotice=s.format==='pcs'?'PCS 识别 Page、Pause、Rate、Section 控制标签，控制标签不参与朗读。':'TXT 沿用自然语言自动分段；不识别控制标签，标签及转义符均作为普通正文。';
+ setScriptText('sourceNotice',(project?.source_format==='legacy'?'旧项目音频安全保留。当前源码由旧片段重建；“应用并编译脚本”会显式转为脚本项目。':s.dirty?'修改只保存在本次页面的作品草稿中；应用后才重新编译。相同片段尽可能复用音频。':'原始脚本是唯一正文来源。')+' '+formatNotice);
+ setScriptText('parseScript',s.format==='pcs'?'解析 PCS':'预览分段');$('source').placeholder=s.format==='pcs'?'#[p:1]#开场。#[p:2]#第二页。#[pause:800]#继续。#[rate:0.9]#稍慢一点。':'在这里粘贴正文，按段落、标点和每段最多字数自动分段。';
  $('parseScript').disabled=s.parseBusy||s.applyBusy;$('previewScript').disabled=!scriptParsed()||s.compileBusy||busy;$('applyScript').disabled=!project||!scriptParsed()||s.compileBusy||busy;
- $('source').disabled=busy;$('file').disabled=busy;$('sourceFormat').disabled=busy;$('limit').disabled=busy;$('insertControl').disabled=busy;
+ $('source').disabled=busy;$('file').disabled=busy;$('sourceFormat').disabled=busy;$('limit').disabled=busy;for(const id of ['insertPage','insertPause','insertRate','insertSection','controlCommand','controlValue','insertControl'])$(id).disabled=busy||s.format!=='pcs';
  if(project){const blocked=s.dirty||scriptHasErrors();for(const id of ['start','retry','export','exportAll','exportSrt','exportKson','exportKsonPreview'])if(blocked)$(id).disabled=true;renderScriptTimeline();renderKsonPreview()}
 }
 async function parseScript(){
@@ -123,7 +133,7 @@ const renderBeforeScript=render;render=function(stopping=false){renderBeforeScri
 $('source').oninput=scriptSourceChanged;$('sourceFormat').onchange=scriptSourceChanged;$('limit').oninput=scriptSourceChanged;
 $('rawMode').onclick=()=>{scriptView='raw';renderScriptView()};$('visualMode').onclick=()=>{scriptView='visual';renderScriptView();if(!scriptDraft().parse)safe(()=>parseScript())};
 for(const [id,command,value] of [['insertPage','p','1'],['insertPause','pause','800'],['insertRate','rate','0.90'],['insertSection','section','intro']])$(id).onclick=()=>{$('controlCommand').value=command;$('controlValue').value=value;$('controlValue').focus()};
-$('insertControl').onclick=()=>{const source=$('source'),tag=`#[${$('controlCommand').value}:${$('controlValue').value.trim()}]#`,start=source.selectionStart??source.value.length,end=source.selectionEnd??start;source.value=source.value.slice(0,start)+tag+source.value.slice(end);source.focus();source.setSelectionRange(start+tag.length,start+tag.length);scriptSourceChanged()};
+$('insertControl').onclick=()=>{if($('insertControl').disabled||scriptDraft().format!=='pcs')return;const source=$('source'),tag=`#[${$('controlCommand').value}:${$('controlValue').value.trim()}]#`,start=source.selectionStart??source.value.length,end=source.selectionEnd??start;source.value=source.value.slice(0,start)+tag+source.value.slice(end);source.focus();source.setSelectionRange(start+tag.length,start+tag.length);scriptSourceChanged()};
 $('parseScript').onclick=()=>safe(()=>parseScript());$('previewScript').onclick=()=>safe(()=>previewScript());$('applyScript').onclick=()=>safe(()=>applyScript());
 $('file').onchange=()=>safe(async()=>{const f=$('file').files[0];if(!f)return;if(f.size>15000000)throw Error('文件过大，请按卷导入');const key=scriptKey(),view=navigation,bytes=await f.arrayBuffer();let text;try{text=new TextDecoder('utf-8',{fatal:true}).decode(bytes)}catch{text=new TextDecoder('gb18030').decode(bytes)}if(view!==navigation||key!==scriptKey())return;$('source').value=text;$('sourceFormat').value=/\.pcs$/i.test(f.name)?'pcs':'txt';scriptDraft().filename=f.name;if(!project)$('title').value=f.name.replace(/\.(txt|pcs)$/i,'');scriptSourceChanged();clearTimeout(scriptTimer);await parseScript()});
 $('create').onclick=()=>safe(async()=>{const s=scriptDraft(),key=scriptKey(),view=navigation;const result=await api('create',{title:$('title').value,text:s.text,limit:s.limit,source_format:s.format,filename:s.filename});await list();if(key!==scriptKey()||view!==navigation)return;scriptDrafts.delete(scriptNewKey);await load(result.id||result.project?.id);notify('作品已保存。请核对脚本、音色后开始生成')});

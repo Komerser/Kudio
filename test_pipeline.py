@@ -73,8 +73,8 @@ class PipelineTests(unittest.TestCase):
 
     def test_http_parse_compile_and_no_tts_side_effect(self):
         with patch.object(a, 'rpc') as rpc:
-            parsed = self.request('api/pcs/parse', {'text': SCRIPT})
-            compiled = self.request('api/pcs/compile', {'text': SCRIPT, 'limit': 160})
+            parsed = self.request('api/pcs/parse', {'text': SCRIPT, 'source_format': 'pcs'})
+            compiled = self.request('api/pcs/compile', {'text': SCRIPT, 'limit': 160, 'source_format': 'pcs'})
         rpc.assert_not_called()
         self.assertTrue(parsed['valid'])
         self.assertEqual(len(compiled['segments']), 3)
@@ -176,19 +176,42 @@ class PipelineTests(unittest.TestCase):
             self.request('api/restore-audio', {'id': project['id'], 'segment': segment['id']})
         self.assertEqual((a.project_dir(project['id']) / (segment['id'] + '.wav')).read_bytes(), before)
 
-    def test_txt_detection_source_spans_and_exact_download(self):
+    def test_txt_is_literal_source_spans_and_exact_download(self):
         project = self.create('  #[p:1]#你好。\r\n', 'txt')
-        self.assertEqual(project['source_format'], 'pcs')
+        self.assertEqual(project['source_format'], 'txt')
         self.assertEqual(project['source_text'], '  #[p:1]#你好。\r\n')
+        self.assertEqual(project['segments'][0]['text'], '#[p:1]#你好。')
+        self.assertEqual(project['timeline']['events'], [])
+        self.assertIsNone(project['segments'][0]['page'])
         plain = self.create('hello', 'txt')
         self.assertEqual(plain['source_format'], 'txt')
         self.assertEqual(plain['timeline']['timing_status'], 'estimated')
         with self.assertRaises(HTTPError):
             self.request('api/export-kson', {'id': plain['id']})
-        project, unused = self.generate(project)
+        project, payloads = self.generate(project)
+        self.assertEqual(payloads[0]['text'], '#[p:1]#你好。')
         result = self.request('api/export-kson', {'id': project['id']})
         exported = self.request('download?id=%s&file=%s' % (project['id'], result['exports'][0]))
         self.assertEqual(exported['format'], 'kson')
+
+    def test_http_defaults_to_txt_and_switches_only_on_explicit_format(self):
+        text = 'A#[pause:800]#B'
+        parsed = self.request('api/pcs/parse', {'text': text})
+        self.assertEqual(parsed['source_format'], 'txt')
+        self.assertEqual(parsed['ast'][0]['text'], text)
+        for mode in ('txt', 'pcs'):
+            compiled = self.request('api/pcs/compile', {'text': text, 'source_format': mode})
+            self.assertEqual(compiled['source_format'], mode)
+            self.assertEqual(len(compiled['segments']), 1 if mode == 'txt' else 2)
+        project = self.request('api/create', {'text': '#[p:abc]#正文'})
+        self.assertEqual(project['source_format'], 'txt')
+        self.assertEqual(project['diagnostics'], [])
+        updated = self.request('api/project/source', {'id': project['id'], 'text': text})
+        self.assertEqual(updated['source_format'], 'txt')
+        switched = self.request('api/project/source', {'id': project['id'], 'text': text, 'source_format': 'pcs'})
+        self.assertEqual(switched['source_format'], 'pcs')
+        kept = self.request('api/project/source', {'id': project['id'], 'text': text})
+        self.assertEqual(kept['source_format'], 'pcs')
 
 
 if __name__ == '__main__':

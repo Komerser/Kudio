@@ -46,7 +46,7 @@ value    = trim(value)
 \#[p:1]#  →  朗读正文 #[p:1]#，不产生 Page 事件
 ```
 
-`.pcs` 强制 PCS 模式；TXT 或自动模式发现未转义 `#[` 候选时进入 PCS，错误候选也必须诊断。推荐 UTF-8；导入保留原始源码、空白和 CRLF。
+格式由文件扩展名或菜单明确指定，不按内容识别。`.pcs` 使用 PCS 模式；`.txt` 使用 TXT 模式，沿用原有自然语言分段，所有控制标签和反斜杠均为普通正文，不产生控制事件或 PCS 语法诊断。直接粘贴默认 TXT，可在菜单手动选择 PCS。推荐 UTF-8；导入保留原始源码、空白和 CRLF。
 
 ## 3. Commands / state / hard boundary
 
@@ -95,7 +95,7 @@ Speech 引用独立 segment，包含 `id/text/chapter/page/section/rate/source_s
 
 SHA-256 fingerprint 基于文本、Page、Section、Rate、有效 GPT/SoVITS 模型路径及完整 TTS payload。排除音色显示名称和 gap。依照语义键的有序队列匹配旧片段，每个旧 ID 只能消费一次，避免重复文本错误复用。完全一致才复用 ID、Done、WAV、duration、audio_version、声音覆盖和可恢复的上一版本；变化或新增 Pending；删除片段不进入当前计划。模型路径内容替换但路径不变无法自动检测，需要用户主动重做。
 
-`build_tts_payload` 不解析 PCS；未授权的标签残留会被拒绝。仅 Compiler 记录的显式转义文字可以含字面标签。payload 使用现有 `cut5`，`speed_factor` 来自有效语速。TTS 模块校验真实 PCM 数据，队列保留三次尝试、暂停完成当前片段、失败重试和单段重做。
+`build_tts_payload` 不解析 PCS；PCS 模式下未授权的标签残留会被拒绝，Compiler 记录的显式转义文字可以含字面标签。TXT 模式下的标签及反斜杠均为普通正文，可进入 TTS。payload 使用现有 `cut5`，`speed_factor` 来自有效语速。TTS 模块校验真实 PCM 数据，队列保留三次尝试、暂停完成当前片段、失败重试和单段重做。
 
 ## 6. Timeline / gap / pause / event ordering
 
@@ -171,6 +171,8 @@ schema 2 保留 `source_format/source_text/pcs_version/source_hash/limit/ast/dia
 | `POST /api/export-kson` | `{id}` → exact `.kson` |
 | `POST /api/export-all` | `{id}` → WAV + SRT + KSON |
 | `POST /api/export-srt` | `{id,group?}` → exact SRT |
+
+源码 API 的 `source_format` 取 `txt` 或 `pcs`；解析、编译、创建接口省略时默认 `txt`，`POST /api/project/source` 省略时保留项目已保存的格式（`legacy` 项目使用 `txt`）。导入 `.pcs` 时客户端明确传入 `pcs`，导入 `.txt` 时传入 `txt`。不支持按内容自动识别格式。菜单切换格式会使当前解析与计划失效，重新预览、应用后才可生成或导出。
 
 服务始终监听 loopback；POST 校验同源 Origin。没有云端分析、上传或 telemetry。
 

@@ -36,7 +36,7 @@ context.request=async(path,data)=>{
  requests.push({path,data});
  if(path.startsWith('project?id='))return structuredClone(projects.get(path.split('=')[1]));
  if(path==='state')return {projects:[...projects.values()].map(({project:p})=>({id:p.id,title:p.title,count:p.segments.length,done:1})),trash:[],active:null};
- if(path==='pcs/parse'){const response=nextParse||parseFixture(run('project.id'));nextParse=null;return await response}
+ if(path==='pcs/parse'){const response=nextParse||(data.source_format==='txt'?{ast:data.text?[{type:'text',text:data.text,source_start:0,source_end:Array.from(data.text).length}]:[],diagnostics:[],valid:true,stats:{},source_format:'txt'}:parseFixture(run('project.id')));nextParse=null;return await response}
  if(path==='pcs/compile'){const response=nextCompile||{...parseFixture('A'),segments:projects.get('A').project.segments,execution_plan:projects.get('A').project.execution_plan};nextCompile=null;return await response}
  if(path==='project/source'){const response=nextApply||structuredClone(projects.get(data.id));nextApply=null;return await response}
  if(path==='export-kson')return {exports:[{file:'A.kson'}]};
@@ -45,7 +45,10 @@ context.request=async(path,data)=>{
 run('api=request');
 (async()=>{
  assert.match(html,/accept="\.txt,\.pcs"/);
+ assert.match(html,/<option value="txt">TXT · 自动分段<\/option>/);assert.match(html,/<option value="pcs">PCS · 控制脚本<\/option>/);assert.equal(html.includes('TXT · 自动识别 PCS'),false);
+ assert.equal(element('sourceFormat').value,'txt');assert(element('scriptToolbar').classes.has('hidden'));assert.equal(element('insertControl').disabled,true);assert.equal(element('parseScript').textContent,'预览分段');
  await run("load('A')");
+ assert.equal(element('sourceFormat').value,'pcs');assert.equal(element('scriptToolbar').classes.has('hidden'),false);assert.equal(element('parseScript').textContent,'解析 PCS');
  assert.equal(element('source').value,projects.get('A').project.source_text);
  assert.match(textOf(element('scriptVisual')),/PPT · 1/);assert.match(textOf(element('scriptVisual')),/PAUSE · 800 ms/);assert.match(textOf(element('scriptVisual')),/SPEED · 0.90×/);assert.match(textOf(element('scriptVisual')),/SECTION · intro/);
  assert.equal(element('astNodes').children.length,6);assert.equal(JSON.parse(element('astJson').textContent).length,6);
@@ -90,6 +93,36 @@ run('api=request');
  await run('refresh()');assert.equal(player.src,url);assert.equal(player.pauseCount,paused);assert.equal(player.currentTime,1.25);assert.equal(activeElement,element('source'));assert.equal(element('source').selectionStart,4);assert.match(element('timelineSummary').textContent,/Exact Timeline/);assert.equal(element('exportKson').disabled,false);assert.equal(run('continuousGapMs()'),800);
  await element('copyKson').onclick();assert.equal(JSON.parse(clipboard).format,'kson');await element('exportKson').onclick();assert(requests.some(r=>r.path==='export-kson'));
  console.log('PASS: compile preview, apply, uninterrupted playback during inference, exact KSON copy/export');
+
+ // Formats are explicit: menu changes invalidate a plan; imported extensions
+ // choose the mode even when a TXT file contains valid or invalid PCS-like text.
+ const sourceBeforeFormat=element('source').value;element('sourceFormat').value='txt';element('sourceFormat').onchange();
+ assert.equal(element('source').value,sourceBeforeFormat);assert.equal(run('scriptDraft().format'),'txt');assert.equal(run('scriptDraft().parse'),null);assert.equal(element('start').disabled,true);assert.equal(element('exportAll').disabled,true);assert(element('scriptToolbar').classes.has('hidden'));assert.equal(element('insertControl').disabled,true);assert.equal(element('controlValue').disabled,true);assert.equal(element('parseScript').textContent,'预览分段');assert.match(element('sourceNotice').textContent,/不识别控制标签/);
+ const literal='#[p:1]#正文。\\#[pause:800]#继续。#[unknown:x]#';
+ element('file').files=[{name:'literal.TXT',size:Buffer.byteLength(literal),arrayBuffer:async()=>new TextEncoder().encode(literal).buffer}];await element('file').onchange();
+ assert.equal(element('sourceFormat').value,'txt');assert.equal(element('source').value,literal);assert.equal(requests.at(-1).data.source_format,'txt');assert.equal(requests.at(-1).data.text,literal);assert.equal(textOf(element('scriptVisual')).includes('PPT ·'),false);assert.equal(textOf(element('scriptVisual')).includes('PAUSE ·'),false);assert.equal(element('scriptVisual').children[0].textContent,literal);assert.equal(element('astNodes').children.length,1);assert.equal(element('parserDiagnostics').children.length,0);assert.match(element('visualMode').textContent,/正文预览/);
+ element('source').setSelectionRange(0,0);element('insertControl').onclick();assert.equal(element('source').value,literal);
+ element('file').files=[{name:'script.PCS',size:Buffer.byteLength(sourceBeforeFormat),arrayBuffer:async()=>new TextEncoder().encode(sourceBeforeFormat).buffer}];await element('file').onchange();
+ assert.equal(element('sourceFormat').value,'pcs');assert.equal(requests.at(-1).data.source_format,'pcs');assert.equal(element('scriptToolbar').classes.has('hidden'),false);assert.equal(element('insertControl').disabled,false);assert.equal(element('parseScript').textContent,'解析 PCS');assert.match(textOf(element('scriptVisual')),/PPT · 1/);
+ console.log('PASS: explicit TXT/PCS menu, extension-based imports, literal TXT preview, format invalidation and PCS-only toolbar');
+
+ // A clean cached draft follows a format-only save from another page, even
+ // after leaving and reopening it. Pending parses still belong to the old draft.
+ const originalRemote=fixture('R');projects.set('R',originalRemote);await run("load('R')");
+ let finishRemoteParse;nextParse=new Promise(resolve=>finishRemoteParse=resolve);const remoteParsing=run('parseScript()');
+ const remoteTxt=structuredClone(originalRemote);remoteTxt.project.source_format='txt';remoteTxt.project.ast=[{type:'text',text:remoteTxt.project.source_text,source_start:0,source_end:remoteTxt.project.source_text.length}];remoteTxt.project.segments=[{id:'R1',text:remoteTxt.project.source_text,chapter:'正文',status:'pending',duration:0}];remoteTxt.project.execution_plan=[{kind:'speech',segment_id:'R1'}];remoteTxt.project.timeline.events=[];remoteTxt.project.kson.events=[];projects.set('R',remoteTxt);
+ await run("load('B')");await run("load('R')");
+ assert.equal(run('project.source_format'),'txt');assert.equal(run('scriptDraft().format'),'txt');assert.equal(run('scriptDraft().savedFormat'),'txt');assert.equal(element('sourceFormat').value,'txt');assert.equal(element('source').value,originalRemote.project.source_text);assert(element('scriptToolbar').classes.has('hidden'));assert.equal(element('scriptVisual').children[0].textContent,originalRemote.project.source_text);
+ finishRemoteParse({ast:originalRemote.project.ast,valid:true,diagnostics:[],source_format:'pcs'});await remoteParsing;
+ assert.equal(run('scriptDraft().parse.source_format'),'txt');assert.equal(textOf(element('scriptVisual')).includes('PPT ·'),false);
+ // A limit-only remote save updates a clean draft without disturbing selection.
+ element('source').focus();element('source').setSelectionRange(4,9);remoteTxt.project.limit=240;await run('refresh()');
+ assert.equal(Number(element('limit').value),240);assert.equal(run('scriptDraft().savedLimit'),240);assert.equal(element('source').selectionStart,4);assert.equal(element('source').selectionEnd,9);assert.equal(activeElement,element('source'));
+ // Unsaved local text, format and limit survive remote changes and navigation.
+ element('source').value='本地草稿保留';element('sourceFormat').value='pcs';element('limit').value=80;run('scriptSourceChanged()');remoteTxt.project.source_text='其他页面保存的正文';remoteTxt.project.limit=320;await run('refresh()');
+ assert.equal(element('source').value,'本地草稿保留');assert.equal(element('sourceFormat').value,'pcs');assert.equal(Number(element('limit').value),80);assert.equal(run('scriptIsDirty()'),true);
+ await run("load('B')");await run("load('R')");assert.equal(element('source').value,'本地草稿保留');assert.equal(element('sourceFormat').value,'pcs');assert.equal(Number(element('limit').value),80);assert.equal(element('start').disabled,true);
+ console.log('PASS: clean cache refreshes remote format/limit, stale parse is rejected, local drafts remain protected');
 
  // Legacy projects are inspectable without silently replacing their old audio.
  const legacy=fixture('L');legacy.project.source_format='legacy';delete legacy.project.ast;delete legacy.project.source_text;projects.set('L',legacy);await run("load('L')");assert.equal(element('source').value,legacy.project.segments.map(s=>s.text).join('\n\n'));assert.match(element('sourceNotice').textContent,/显式/);assert.equal(element('editText').readOnly,true);run("openEditor('L1')");assert.equal(element('editText').readOnly,false);

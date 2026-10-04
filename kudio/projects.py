@@ -33,6 +33,7 @@ def migrate_project(project):
     project.setdefault('limit', 160)
     project['schema_version'] = SCHEMA_VERSION
     for segment in project['segments']:
+        segment['source_format'] = 'pcs' if project['source_format'] == 'pcs' else 'txt'
         segment.setdefault('page', None)
         segment.setdefault('section', None)
         segment.setdefault('rate', None)

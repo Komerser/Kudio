@@ -21,6 +21,8 @@ def _check_text(segment):
     text = segment.get('text')
     if not isinstance(text, str) or not text.strip():
         raise ValueError('推理片段不能为空')
+    if segment.get('source_format') == 'txt':
+        return text  # Explicit TXT is ordinary text, including tag-like characters.
     cursor = 0
     while True:
         cursor = text.find('#[', cursor)

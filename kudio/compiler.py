@@ -65,7 +65,7 @@ def _reuse_segments(segments, previous_segments, voice):
             segment['status'], segment['error'] = 'pending', ''
 
 
-def compile_source(text, limit=160, voice=None, previous_segments=None, source_format='auto'):
+def compile_source(text, limit=160, voice=None, previous_segments=None, source_format='txt'):
     """Compile boundaries before natural splitting; invalid PCS yields no plan.
 
     Parser errors are returned with ``valid=False`` and empty output lists so
@@ -98,7 +98,13 @@ def compile_source(text, limit=160, voice=None, previous_segments=None, source_f
                 event.update(type='section', name=section)
             ordering.append(event)
             continue
-        decoded, mapping, literals = decode_literal_text(text[node['source_start']:node['source_end']], node['source_start'])
+        raw = text[node['source_start']:node['source_end']]
+        if parsed['source_format'] == 'pcs':
+            decoded, mapping, literals = decode_literal_text(raw, node['source_start'])
+        else:
+            decoded = raw
+            mapping = [(node['source_start'] + i, node['source_start'] + i + 1) for i in range(len(raw))]
+            literals = []
         for segment in split_text_with_spans(decoded, limit):
             start, end = segment.pop('text_start'), segment.pop('text_end')
             positions = segment.pop('text_positions')
@@ -106,7 +112,7 @@ def compile_source(text, limit=160, voice=None, previous_segments=None, source_f
                 segment['chapter'] = chapter
             else:
                 chapter = segment['chapter']
-            segment.update(page=page, section=section, rate=rate,
+            segment.update(page=page, section=section, rate=rate, source_format=parsed['source_format'],
                            source_start=mapping[start][0], source_end=mapping[end - 1][1],
                            overrides={}, audio_version=None)
             escaped = []
