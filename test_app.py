@@ -103,6 +103,8 @@ class WorkstationTests(unittest.TestCase):
         self.assertTrue(all(s == 'pending' for s in statuses[1:]))
 
     def test_export_normalizes_mixed_formats_without_changing_sources(self):
+        if not (a.ENGINE / 'runtime' / 'ffmpeg.exe').is_file():
+            self.skipTest('Optional conversion integration requires GPT-SoVITS runtime/ffmpeg.exe')
         p = self.project()
         for s in p['segments']:
             s['status'] = 'done'

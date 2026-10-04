@@ -2,9 +2,9 @@
 
 **从第一句话，到一整本有声书。**
 
-Kudio 1.6.1 是基于本地 GPT-SoVITS 的脚本与有声书创作工具。在配置、文本、推理三个工作区中完成角色管理、配音安排、逐段生成、试听与 WAV / SRT / KSON 导出。
+Kudio 1.6.2 是基于本地 GPT-SoVITS 的脚本与有声书创作工具。在配置、文本、推理三个工作区中完成角色管理、配音安排、逐段生成、试听与 WAV / SRT / KSON 导出。
 
-完整更新报告与运行逻辑见 [docs/UPDATE_1.6.1.md](docs/UPDATE_1.6.1.md)，正式 PCS / KSON 规范见 [docs/PCS_KSON.md](docs/PCS_KSON.md)。发布包附带 [PCS 编写技能及安装说明](skills/README.md)。
+完整更新报告与运行逻辑见 [docs/UPDATE_1.6.2.md](docs/UPDATE_1.6.2.md)，正式 PCS / KSON 规范见 [docs/PCS_KSON.md](docs/PCS_KSON.md)。发布包附带 [PCS 编写技能及安装说明](skills/README.md)。
 
 ## 功能
 
@@ -97,7 +97,7 @@ python build_release.py
 
 生成 `dist/Kudio-版本-windows.zip` 及 SHA-256 校验文件。打包采用文件白名单，包含运行程序、对应版本更新报告、PCS / KSON 规范和 PCS 技能；不复制个人数据、配置、日志、测试或开发工具。`dist/` 已加入 `.gitignore`。
 
-仓库的 Windows 发布流程在推送 `v版本` 标签后运行后端与前端回归检查，再打包并上传 ZIP 和校验文件到 GitHub Release。标签必须与 `VERSION.txt` 一致，失败时不会发布附件；不执行需要本机模型的真实引擎测试。流程采用 [GitHub 官方令牌机制](https://docs.github.com/en/actions/concepts/security/github_token) 与 [GitHub CLI 发布命令](https://cli.github.com/manual/gh_release_create)。
+仓库的 Windows 发布流程在推送 `v版本` 标签后运行后端与前端回归检查，再打包并上传 ZIP 和校验文件到 GitHub Release。标签必须与 `VERSION.txt` 一致，失败时不会发布附件；不执行需要本机模型的真实引擎测试。无引擎 ffmpeg 的干净环境会明确跳过混合音频转换集成检查，其余单元回归不依赖模型。流程采用 [GitHub 官方令牌机制](https://docs.github.com/en/actions/concepts/security/github_token) 与 [GitHub CLI 发布命令](https://cli.github.com/manual/gh_release_create)。
 
 ## 开发验证
 

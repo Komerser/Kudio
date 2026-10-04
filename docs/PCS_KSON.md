@@ -1,6 +1,6 @@
 # PCS 0.1 / KSON 0.1 规范与维护说明
 
-Kudio 1.6.1；Python 3.9+ 标准库后端、本地 HTTP、原生前端，无构建依赖。
+Kudio 1.6.2；Python 3.9+ 标准库后端、本地 HTTP、原生前端，无构建依赖。
 
 ## 1. 职责与模块
 
@@ -131,7 +131,7 @@ Exact Timeline 使用实际 WAV 帧数及统一 PCM 格式，忽略 `project.jso
   "format":"kson",
   "version":"0.1",
   "timebase":"ms",
-  "generator":{"name":"Kudio","version":"1.6.1"},
+  "generator":{"name":"Kudio","version":"1.6.2"},
   "project":{"id":"example","title":"示例"},
   "source":{"format":"pcs","pcs_version":"0.1"},
   "timing_status":"exact",

@@ -1,6 +1,6 @@
-# Kudio 1.6.1 更新报告与运行说明
+# Kudio 1.6.2 更新报告与运行说明
 
-日期：2026 年 10 月 4 日。本文说明 1.6.1 整理后的界面、数据保存方式、推理流程与 PCS 支持范围。行为以当前程序实现为准；PCS / KSON 的详细格式见 [PCS_KSON.md](PCS_KSON.md)。
+日期：2026 年 10 月 4 日。本文说明 1.6.2 整理后的界面、数据保存方式、推理流程与 PCS 支持范围。行为以当前程序实现为准；PCS / KSON 的详细格式见 [PCS_KSON.md](PCS_KSON.md)。
 
 本次发布把前端重建、多角色配音和三语界面整理为可维护的本地工作台，并补充运行说明与 PCS 编写技能交付。本报告同时随 Windows 发布包提供，PCS 技能目录可独立复制安装。精简明细、验证结果和发布位置见第 12 节。
 
@@ -265,7 +265,7 @@ KSON 的 `segments` 记录正文、起止毫秒、页码、章节、实际语速
 
 - 移除旧版 `_kudio_stage/`、`_kudio_preview.py` 和仅供界面验收的 `_kudio_preview_data/`；先停止验收用 8876 服务。
 - 移除没有引用的 `i18n-static-keys.json`、根目录旧 `server.log / server-error.log`，以及旧前端重建与侧栏修复截图。保留当前蓝色英文、日文界面截图。
-- 移除旧 1.3.0、1.4.0、1.5.0、1.5.1、1.6.0 安装包及对应校验文件；`dist/` 只保留本次 1.6.1 发布包和校验文件。旧 `dist/pcs-smoke/` 是固定测试稿的隔离导出，已清理。
+- 移除旧 1.3.0、1.4.0、1.5.0、1.5.1、1.6.0 及中间构建 1.6.1 安装包和对应校验文件；`dist/` 只保留本次发布包和校验文件。旧 `dist/pcs-smoke/` 是固定测试稿的隔离导出，已清理。
 - 清理源码目录中的 Python 生成缓存；保留全部程序模块、测试、四份翻译源字典及构建工具。
 - 旧 `.github-sync` 克隆移出源码目录，归档到 `D:\A_sound\archives\Kudio-git-1.4.0`，保留 Git 对象和分支历史。它不会进入源码提交或发布包。
 - 两个项目目录各自的 `data/` 与 `settings.json` 保留，包括作品、音频、预设、回收站、历史备份和正式日志；不跨目录合并用户数据。
@@ -284,14 +284,14 @@ KSON 的 `segments` 记录正文、起止毫秒、页码、章节、实际语速
 | PCS 技能 | 五个文件齐全，UTF-8、包内引用与基础示例解析校验通过 |
 | 发布包 | 文件白名单、ZIP 完整性、版本、语言资源、报告、技能、数据排除及 SHA-256 校验 |
 
-此次不重复执行真实 GPU 推理，也不声明新性能数据。仓库发布流程在 Windows 上重跑代码回归后再构建附件。
+本机 83 项后端回归全部通过；干净构建环境没有 GPT-SoVITS 自带 ffmpeg 时，明确跳过 1 项真实混合音频转换集成检查，其余 82 项照常运行。需要 ffmpeg 的检查不会用伪造转换结果代替。此次不重复执行真实 GPU 推理，也不声明新性能数据。仓库发布流程在 Windows 上重跑代码回归后再构建附件。
 
 ### 技能与发布文件
 
 技能文件为 `skills/README.md`、`skills/kudio-pcs-authoring/SKILL.md`、`references/pcs-v0.1.md`、`references/kudio-compatibility.md` 和 `examples/basic.pcs`（后三项均在技能子目录内）。安装、调用和导入流程见 [技能指南](../skills/README.md)；复制技能不会自动修改个人配置。
 
-本地交付：`dist/Kudio-1.6.1-windows.zip` 与 `dist/Kudio-1.6.1-windows.zip.sha256`。校验文件记录实际 ZIP 的 SHA-256；报告在包内，不内嵌会影响包自身哈希的校验值。发布包包含运行文件、这份报告、正式语法规范和完整技能目录。
+本地交付：`dist/Kudio-1.6.2-windows.zip` 与 `dist/Kudio-1.6.2-windows.zip.sha256`。校验文件记录实际 ZIP 的 SHA-256；报告在包内，不内嵌会影响包自身哈希的校验值。发布包包含运行文件、这份报告、正式语法规范和完整技能目录。
 
-版本标签为 `v1.6.1`，仓库为 [Komerser/Kudio](https://github.com/Komerser/Kudio)。实际提交可从标签对应的 Git 历史查询；Windows ZIP 与校验附件发布位置为 [Kudio 1.6.1 Release](https://github.com/Komerser/Kudio/releases/tag/v1.6.1)。构建由 `.github/workflows/release.yml` 在版本标签推送后执行，版本不匹配或回归失败会停止发布。
+版本标签为 `v1.6.2`，仓库为 [Komerser/Kudio](https://github.com/Komerser/Kudio)。实际提交可从标签对应的 Git 历史查询；Windows ZIP 与校验附件发布位置为 [Kudio 1.6.2 Release](https://github.com/Komerser/Kudio/releases/tag/v1.6.2)。构建由 `.github/workflows/release.yml` 在版本标签推送后执行，版本不匹配或回归失败会停止发布。
 
 PCS 技能负责生成、修复和审核 UTF-8 `.pcs` 源稿，不代替 Kudio 的真实音频推理，也不凭空提供导出时间戳。其兼容性参考应与本文的五种合法值、硬边界、声音标签绑定和实际 KSON 字段对齐。

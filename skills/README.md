@@ -1,6 +1,6 @@
 # Kudio PCS 技能包
 
-这个目录附带 `kudio-pcs-authoring` 技能，帮助 Codex 为现有讲稿插入、检查或修复 PCS 控制标记。基础内容来自已安装的 `kudio-pcs` 0.1.1；额外的兼容说明与 Kudio Local 1.6.1 当前解析器保持一致。
+这个目录附带 `kudio-pcs-authoring` 技能，帮助 Codex 为现有讲稿插入、检查或修复 PCS 控制标记。基础内容来自已安装的 `kudio-pcs` 0.1.1；额外的兼容说明与 Kudio Local 1.6.2 当前解析器保持一致。
 
 ## 文件内容
 
@@ -71,6 +71,6 @@ macOS / Linux:
 - 此技能不会直接生成音频、字幕、KSON 或带时间戳的 JSON；这些操作由 Kudio 执行。
 - 正式音频与时间轴导出需要实际完成语音生成。技能不会编造音频时长或时间戳。
 - [基础语义参考](kudio-pcs-authoring/references/pcs-v0.1.md) 中的 KSON 示例是概念说明，实际导出格式以 Kudio 的 `docs/PCS_KSON.md` 为准。
-- 编写 Kudio Local 1.6.1 脚本时，请同时遵循 [当前应用兼容说明](kudio-pcs-authoring/references/kudio-compatibility.md)。其中记录了停顿、语速、名称长度、声线绑定与错误处理的具体限制。
+- 编写 Kudio Local 1.6.2 脚本时，请同时遵循 [当前应用兼容说明](kudio-pcs-authoring/references/kudio-compatibility.md)。其中记录了停顿、语速、名称长度、声线绑定与错误处理的具体限制。
 
 可打开 [基础示例](kudio-pcs-authoring/examples/basic.pcs) 查看完整 PCS 文件。示例中的讲稿仅用于演示语法，实际创作请换成自己的内容。
