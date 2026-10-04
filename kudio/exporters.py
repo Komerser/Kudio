@@ -9,7 +9,7 @@ import wave
 from .timeline import audio_source
 
 
-def build_kson(project, timeline, generator_version='1.6.2'):
+def build_kson(project, timeline, generator_version='1.6.3'):
     """Return standard KSON 0.1 JSON data, including explicit draft status."""
     source = project.get('source', {})
     source_format = project.get('source_format') or (source.get('format', 'txt')
@@ -69,7 +69,7 @@ def write_srt(path, timeline):
     return _atomic_text(path, '\n'.join(blocks), 'utf-8-sig')
 
 
-def write_kson(path, project, timeline, generator_version='1.6.2'):
+def write_kson(path, project, timeline, generator_version='1.6.3'):
     """Write an exact KSON export; use build_kson for estimated UI previews."""
     _require_exact(timeline)
     text = json.dumps(build_kson(project, timeline, generator_version),

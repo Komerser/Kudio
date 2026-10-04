@@ -2,9 +2,9 @@
 
 **从第一句话，到一整本有声书。**
 
-Kudio 1.6.2 是基于本地 GPT-SoVITS 的脚本与有声书创作工具。在配置、文本、推理三个工作区中完成角色管理、配音安排、逐段生成、试听与 WAV / SRT / KSON 导出。
+Kudio 1.6.3 是基于本地 GPT-SoVITS 的脚本与有声书创作工具。在配置、文本、推理三个工作区中完成角色管理、配音安排、逐段生成、试听与 WAV / SRT / KSON 导出。
 
-完整更新报告与运行逻辑见 [docs/UPDATE_1.6.2.md](docs/UPDATE_1.6.2.md)，正式 PCS / KSON 规范见 [docs/PCS_KSON.md](docs/PCS_KSON.md)。发布包附带 [PCS 编写技能及安装说明](skills/README.md)。
+完整更新报告与运行逻辑见 [docs/UPDATE_1.6.3.md](docs/UPDATE_1.6.3.md)，正式 PCS / KSON 规范见 [docs/PCS_KSON.md](docs/PCS_KSON.md)。发布包附带 [PCS 编写技能及安装说明](skills/README.md)。
 
 ## 功能
 

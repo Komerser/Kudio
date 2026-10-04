@@ -187,15 +187,16 @@ class WorkstationTests(unittest.TestCase):
         result = Mock(returncode=0, stdout=a.base64.b64encode(str(audio).encode('utf-16le')).decode('ascii'), stderr='')
         with patch.object(a.subprocess, 'run', return_value=result) as run:
             selected = a.pick_local_path('reference', str(a.DATA))
-            self.assertEqual(selected['path'], str(audio.resolve()))
+            self.assertTrue(Path(selected['path']).samefile(audio))
             self.assertFalse(selected['cancelled'])
-            self.assertEqual(run.call_args.kwargs['env']['KUDIO_PICK_INITIAL'], str(a.DATA))
+            self.assertTrue(Path(run.call_args.kwargs['env']['KUDIO_PICK_INITIAL']).samefile(a.DATA))
             a.pick_local_path('reference', str(a.DATA / 'different'))
-            self.assertEqual(run.call_args.kwargs['env']['KUDIO_PICK_INITIAL'], str(a.DATA))
+            self.assertTrue(Path(run.call_args.kwargs['env']['KUDIO_PICK_INITIAL']).samefile(a.DATA))
             history = (a.DATA / 'path_history.json').read_bytes()
             result.stdout = ''
             self.assertTrue(a.pick_local_path('gpt', str(a.DATA / 'models'))['cancelled'])
-            self.assertEqual(run.call_args.kwargs['env']['KUDIO_PICK_INITIAL'], str(a.DATA / 'models'))
+            self.assertEqual(Path(run.call_args.kwargs['env']['KUDIO_PICK_INITIAL']).resolve(),
+                             (a.DATA / 'models').resolve())
             self.assertEqual((a.DATA / 'path_history.json').read_bytes(), history)
             a.pick_local_path('gpt', str(a.DATA / 'models'), 'en')
             self.assertEqual(run.call_args.kwargs['env']['KUDIO_PICK_TITLE'], 'Select a local file for Kudio')
@@ -351,9 +352,9 @@ class WorkstationTests(unittest.TestCase):
         (engine / 'runtime').mkdir(parents=True)
         (engine / 'api_v2.py').touch()
         (engine / 'runtime/python.exe').touch()
-        self.assertEqual(a.discover_engine(root), engine)
+        self.assertTrue(a.discover_engine(root).samefile(engine))
         (root / 'settings.json').write_text(a.json.dumps({'engine_root':'../任意名称引擎'}), encoding='utf-8-sig')
-        self.assertEqual(a.discover_engine(root), engine.resolve())
+        self.assertTrue(a.discover_engine(root).samefile(engine))
         for key in ('gpt', 'sovits', 'reference'):
             self.assertEqual(a.defaults()[key], '')
 

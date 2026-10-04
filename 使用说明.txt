@@ -1,4 +1,4 @@
-Kudio 1.6.2 · Windows 便携发布版
+Kudio 1.6.3 · Windows 便携发布版
 
 这是 GPT-SoVITS 的长篇有声书工作台，需要自行准备可正常运行的 Windows GPT-SoVITS 整合包。
 支持含 api_v2.py、runtime/python.exe 的目录结构；混合格式音频导出需要 runtime/ffmpeg.exe。
@@ -40,7 +40,7 @@ TXT 和未使用 voice 的 PCS 使用默认角色，无需在脚本中填写角�
 支持整本 WAV、分组 WAV，以及每个生成片段一条的 SRT 字幕。
 导出 WAV 自动附带同名 SRT / KSON；时间轴读取真实 WAV 帧数，包含显式停顿。
 KSON 是合法 JSON，正式导出需所有所选语音完成；生成前预览明确标记 estimated。
-未应用源稿草稿只保留于当前页面会话，刷新前请应用。详细语法见 docs/PCS_KSON.md；完整运行逻辑与更新报告见 docs/UPDATE_1.6.2.md。
+未应用源稿草稿只保留于当前页面会话，刷新前请应用。详细语法见 docs/PCS_KSON.md；完整运行逻辑与更新报告见 docs/UPDATE_1.6.3.md。
 发布包附带 skills/kudio-pcs-authoring 编写技能，安装方法见 skills/README.md。
 WAV 受 4GB 格式上限约束，超过上限请分段导出。
 

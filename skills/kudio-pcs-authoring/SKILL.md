@@ -11,7 +11,7 @@ PCS is a lightweight control language embedded in otherwise normal narration. It
 
 Read `references/pcs-v0.1.md` when exact PCS syntax, boundary behavior, validation rules, or downstream Kudio behavior is needed.
 
-For Kudio Local 1.6.2, also read [Kudio compatibility](references/kudio-compatibility.md) before authoring or validating PCS. Its concrete parser limits, voice-label binding rules, and export distinctions take precedence over the conceptual examples in `references/pcs-v0.1.md`. The bundled reference remains the semantic explanation; its KSON examples are not the actual Kudio export schema. The implementation in `Kudio_Local/kudio/pcs.py` and the specification in `Kudio_Local/docs/PCS_KSON.md` are authoritative for the installed application.
+For Kudio Local 1.6.3, also read [Kudio compatibility](references/kudio-compatibility.md) before authoring or validating PCS. Its concrete parser limits, voice-label binding rules, and export distinctions take precedence over the conceptual examples in `references/pcs-v0.1.md`. The bundled reference remains the semantic explanation; its KSON examples are not the actual Kudio export schema. The implementation in `Kudio_Local/kudio/pcs.py` and the specification in `Kudio_Local/docs/PCS_KSON.md` are authoritative for the installed application.
 
 ## Primary goal
 

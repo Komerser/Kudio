@@ -1,6 +1,6 @@
-# Kudio Local 1.6.2 compatibility
+# Kudio Local 1.6.3 compatibility
 
-This supplement records the constraints checked against Kudio Local 1.6.2. Use it when generating or validating scripts for that application. It takes precedence over the broader conceptual examples in `pcs-v0.1.md`.
+This supplement records the constraints checked against Kudio Local 1.6.3. Use it when generating or validating scripts for that application. It takes precedence over the broader conceptual examples in `pcs-v0.1.md`.
 
 The authoritative parser is `Kudio_Local/kudio/pcs.py` (the release contains `kudio/pcs.py`). The application specification and actual KSON schema are documented in `Kudio_Local/docs/PCS_KSON.md` (the release contains `docs/PCS_KSON.md`). These repository paths are source references, not dependencies required to install this skill. This supplement travels with the standalone skill folder.
 
@@ -12,7 +12,7 @@ Deliver generated or repaired narration only as an actual UTF-8 plain-text file 
 
 Only five commands are supported. Each marker uses `#[command:value]#`. Command names are trimmed and lowercased; values are trimmed. The parser splits at the first `:` only, so a section name may contain further colons. Nested markers are invalid.
 
-| Command | Accepted value in Kudio Local 1.6.2 | Scope |
+| Command | Accepted value in Kudio Local 1.6.3 | Scope |
 | --- | --- | --- |
 | `p` | ASCII decimal digits `[0-9]+`, representing a positive integer. Signs, fractions, and non-ASCII digits are rejected. | Persistent page state. |
 | `pause` | ASCII decimal digits representing an integer from `0` through `30000`, inclusive; unit is milliseconds. | One silence event. |
