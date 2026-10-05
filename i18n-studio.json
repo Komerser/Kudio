@@ -658,5 +658,53 @@
   "Section": {
     "en": "Section",
     "ja": "章"
+  },
+  "VOICE · {label}": {
+    "en": "VOICE · {label}",
+    "ja": "VOICE · {label}"
+  },
+  "{result} · {pages} Page · {pauses} Pause · {rates} Rate · {sections} Section · {voices} Voice · {warnings} Warning": {
+    "en": "{result} · {pages} Page · {pauses} Pause · {rates} Rate · {sections} Section · {voices} Voice · {warnings} Warning",
+    "ja": "{result} · Page {pages} · Pause {pauses} · Rate {rates} · Section {sections} · Voice {voices} · 警告 {warnings}"
+  },
+  "PCS 识别 Page、Pause、Rate、Section、Voice 控制标签，控制标签不参与朗读。": {
+    "en": "PCS recognizes Page, Pause, Rate, Section and Voice controls. Control tags are not spoken.",
+    "ja": "PCS は Page・Pause・Rate・Section・Voice の制御タグを認識します。制御タグ自体は読み上げません。"
+  },
+  "脚本格式处理结果无效": {
+    "en": "Invalid script formatting response.",
+    "ja": "スクリプト整形の結果が無効です。"
+  },
+  "PCS 格式处理失败，原稿未修改：{error}": {
+    "en": "PCS formatting failed; the original text is unchanged: {error}",
+    "ja": "PCS を整形できませんでした。元の原稿は変更していません：{error}"
+  },
+  "PCS 格式已规范，正文保持不变": {
+    "en": "PCS formatting normalized. Narration text is unchanged.",
+    "ja": "PCS の書式を整えました。読み上げ本文は変更していません。"
+  },
+  "PCS 格式无需调整": {
+    "en": "PCS formatting is already canonical.",
+    "ja": "PCS の書式はすでに整っています。"
+  },
+  "需重新编译": {
+    "en": "Recompile required",
+    "ja": "再コンパイルが必要"
+  },
+  "需重新编译 · 应用脚本后更新计划和时间轴": {
+    "en": "Recompile required · Apply the script to refresh the plan and timeline.",
+    "ja": "再コンパイルが必要です。スクリプトを適用して計画とタイムラインを更新してください。"
+  },
+  "编译快照已失效。原有音频保留；请解析并应用脚本，重新建立计划和时间轴。": {
+    "en": "The compiled snapshot is outdated. Existing audio is preserved. Parse and apply the script to rebuild its plan and timeline.",
+    "ja": "コンパイル済みの情報が古くなっています。既存の音声は保持されています。スクリプトを解析・適用して計画とタイムラインを再構築してください。"
+  },
+  "请先重新编译脚本": {
+    "en": "Recompile the script first.",
+    "ja": "先にスクリプトを再コンパイルしてください。"
+  },
+  "章节 · {name}": {
+    "en": "Chapter · {name}",
+    "ja": "章 · {name}"
   }
 }

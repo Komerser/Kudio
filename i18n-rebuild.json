@@ -710,5 +710,25 @@
   "{summary}{truncated}{restart}。": {
     "en": "{summary}{truncated}{restart}.",
     "ja": "{summary}{truncated}{restart}。"
+  },
+  "应用脚本后，重新建立权威时间轴。": {
+    "en": "Apply the script to rebuild the authoritative timeline.",
+    "ja": "スクリプトを適用して正式なタイムラインを再構築してください。"
+  },
+  "重新编译脚本": {
+    "en": "Recompile script",
+    "ja": "スクリプトを再コンパイル"
+  },
+  "兼容分组与导出": {
+    "en": "Legacy groups and export",
+    "ja": "互換グループと書き出し"
+  },
+  "PCS 的正式章节由 section 控制；下列手动分组与旧建议仅用于兼容导出，不改变 PCS 章节。": {
+    "en": "PCS sections are defined by section controls. These manual groups and legacy suggestions support compatible exports and do not change PCS sections.",
+    "ja": "PCS の章は section 制御で指定します。以下の手動グループと旧形式の候補は互換書き出し用で、PCS の章を変更しません。"
+  },
+  "旧分组建议（兼容）": {
+    "en": "Legacy group suggestions",
+    "ja": "旧グループ候補（互換）"
   }
 }

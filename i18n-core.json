@@ -104,5 +104,33 @@
   "载入音频模型":{"en":"Loading audio model","ja":"音声モデルを読み込み中"},
   "尚无已确认分组。可新建手动分组，或采纳智能分段建议。":{"en":"No confirmed groups yet. Create a group or accept a segmentation suggestion.","ja":"確定したグループはありません。手動で作成するか、分割候補を採用してください。"},
   "暂无分组建议，已忽略的建议可以恢复显示。":{"en":"No group suggestions. You can restore dismissed suggestions.","ja":"グループの候補はありません。非表示にした候補を再表示できます。"},
-  "未找到":{"en":"Not found","ja":"見つかりません"}
+  "未找到":{"en":"Not found","ja":"見つかりません"},
+  "脚本尚未通过解析：{errors}": {
+    "en": "The script has parsing errors: {errors}",
+    "ja": "スクリプトに解析エラーがあります：{errors}"
+  },
+  "源码位置必须是源稿范围内的 Unicode 字符偏移整数": {
+    "en": "Source positions must be integer Unicode character offsets within the source text.",
+    "ja": "ソース位置は原稿の範囲内にある Unicode 文字オフセットの整数で指定してください。"
+  },
+  "编译结果与源稿不一致，请重新编译": {
+    "en": "The compiled result does not match the source. Recompile it.",
+    "ja": "コンパイル結果と原稿が一致しません。再コンパイルしてください。"
+  },
+  "源稿尚未通过解析，请修正源稿并重新编译": {
+    "en": "The source has not passed parsing. Correct it and recompile.",
+    "ja": "原稿の解析に成功していません。原稿を修正して再コンパイルしてください。"
+  },
+  "控制事件与源稿不一致，请重新编译源稿": {
+    "en": "Control events do not match the source. Recompile the script.",
+    "ja": "制御イベントと原稿が一致しません。原稿を再コンパイルしてください。"
+  },
+  "语音源码位置已失效，请重新编译源稿": {
+    "en": "Speech source positions are outdated. Recompile the script.",
+    "ja": "音声のソース位置が無効になっています。原稿を再コンパイルしてください。"
+  },
+  "控制事件顺序与语音源码边界不一致，请重新编译源稿": {
+    "en": "Control event order does not match speech source boundaries. Recompile the script.",
+    "ja": "制御イベントの順序と音声のソース境界が一致しません。原稿を再コンパイルしてください。"
+  }
 }

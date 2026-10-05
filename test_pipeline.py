@@ -16,7 +16,9 @@ from urllib.parse import quote
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from kudio import server as a
 from kudio.compiler import compile_source
-from kudio.projects import apply_compilation, require_compiled
+from kudio.projects import apply_compilation, migrate_project, refresh_source_cache, require_compiled
+from kudio.pcs import parse_source, PCS_VERSION
+from kudio.source import source_hash
 
 SCRIPT = '#[p:1]#开场。#[p:2]#第二页。#[pause:800]#[section:intro]#[rate:0.9]#继续。'
 
@@ -29,6 +31,116 @@ def audio_bytes(frames=2400):
         source.setframerate(24000)
         source.writeframes(b'\0\0' * frames)
     return output.getvalue()
+
+
+class ProjectSourceCacheTests(unittest.TestCase):
+    def project(self, text=SCRIPT, source_format='pcs'):
+        project = {'groups': []}
+        apply_compilation(project, compile_source(text, source_format=source_format), text)
+        return project
+
+    def test_schema2_without_cache_identity_reparses_even_matching_source_hash(self):
+        project = self.project()
+        project.pop('parse_cache')
+        project.update(ast=[{'type': 'text', 'text': '错误缓存'}], diagnostics=[{'level': 'error', 'message': '错误缓存'}])
+        source_digest = project['source_hash']
+        old_plan, old_segments = copy.deepcopy(project['execution_plan']), copy.deepcopy(project['segments'])
+        migrate_project(project)
+        parsed = parse_source(SCRIPT, 'pcs')
+        self.assertEqual(project['ast'], parsed['ast'])
+        self.assertEqual(project['diagnostics'], parsed['diagnostics'])
+        self.assertEqual(project['source_hash'], source_digest)
+        self.assertEqual(project['execution_plan'], old_plan)
+        self.assertEqual(project['segments'], old_segments)
+        self.assertEqual(project['schema_version'], 2)
+        require_compiled(project)
+
+    def test_source_mismatch_refreshes_cache_but_cannot_certify_the_old_compilation(self):
+        project = self.project()
+        old_hash, old_plan, old_segments = project['source_hash'], copy.deepcopy(project['execution_plan']), copy.deepcopy(project['segments'])
+        project['source_text'] = '#[voice:]#新正文'
+        migrate_project(project)
+        self.assertEqual(project['ast'], parse_source(project['source_text'], 'pcs')['ast'])
+        self.assertTrue(project['diagnostics'])
+        self.assertEqual(project['parse_cache']['source_hash'], source_hash(project['source_text']))
+        self.assertEqual(project['source_hash'], old_hash)
+        self.assertEqual(project['execution_plan'], old_plan)
+        self.assertEqual(project['segments'], old_segments)
+        with self.assertRaisesRegex(ValueError, '源稿已更改'):
+            require_compiled(project)
+
+    def test_cache_identity_includes_explicit_format_and_pcs_version(self):
+        text = '#[voice:narrator]#正文'
+        project = self.project(text)
+        project['source_format'] = 'txt'
+        refresh_source_cache(project)
+        self.assertEqual(project['ast'], parse_source(text, 'txt')['ast'])
+        self.assertEqual(project['parse_cache']['source_format'], 'txt')
+        with self.assertRaisesRegex(ValueError, '控制事件'):
+            require_compiled(project)
+        project['source_format'] = 'pcs'
+        project['parse_cache']['pcs_version'] = 'old'
+        project['ast'] = []
+        refresh_source_cache(project)
+        self.assertEqual(project['ast'], parse_source(text, 'pcs')['ast'])
+        self.assertEqual(project['parse_cache']['pcs_version'], PCS_VERSION)
+
+    def test_require_compiled_uses_source_diagnostics_even_for_poisoned_matching_cache(self):
+        project = self.project('正文')
+        project.update(ast=[], diagnostics=[{'level': 'error', 'message': '伪错误'}])
+        require_compiled(project)
+        self.assertEqual(project['diagnostics'], [])
+        project.update(source_text='#[voice:]#正文', source_hash=source_hash('#[voice:]#正文'), diagnostics=[])
+        project['parse_cache']['source_hash'] = project['source_hash']
+        with self.assertRaisesRegex(ValueError, '解析错误'):
+            require_compiled(project)
+        self.assertTrue(project['diagnostics'])
+
+    def test_apply_rejects_a_compilation_for_different_source_atomically(self):
+        project = self.project('旧正文')
+        before = copy.deepcopy(project)
+        with self.assertRaisesRegex(ValueError, '编译结果与源稿不一致'):
+            apply_compilation(project, compile_source('新正文', source_format='pcs'), '另一个源稿')
+        self.assertEqual(project, before)
+        compiled = compile_source('新正文', source_format='pcs')
+        compiled.update(ast=[{'type': 'text', 'text': '伪缓存'}], diagnostics=[{'level': 'error'}])
+        apply_compilation(project, compiled, '新正文')
+        self.assertEqual(project['ast'], parse_source('新正文', 'pcs')['ast'])
+        self.assertEqual(project['diagnostics'], [])
+
+    def test_event_guard_rejects_type_spans_values_and_order_but_keeps_old_ids(self):
+        project = self.project()
+        for event in project['execution_plan']:
+            if event['kind'] == 'event':
+                event['id'] = 'a' * 32  # Legacy UUIDs are not migrated or compared.
+        require_compiled(project)
+        for field, value in (('page', 9), ('page', True), ('source_start', -1), ('source_end', 0), ('type', 'voice')):
+            broken = copy.deepcopy(project)
+            broken['execution_plan'][0][field] = value
+            with self.subTest(field=field, value=value), self.assertRaisesRegex(ValueError, '控制事件'):
+                require_compiled(broken)
+        broken = copy.deepcopy(project)
+        indexes = [index for index, item in enumerate(broken['execution_plan']) if item['kind'] == 'event']
+        first, last = indexes[0], indexes[-1]
+        broken['execution_plan'][first], broken['execution_plan'][last] = broken['execution_plan'][last], broken['execution_plan'][first]
+        with self.assertRaisesRegex(ValueError, '控制事件'):
+            require_compiled(broken)
+
+    def test_event_guard_preserves_speech_boundary_and_rejects_unknown_source_spans(self):
+        project = self.project('A#[p:2]#B')
+        require_compiled(project)
+        before = copy.deepcopy(project)
+        project['execution_plan'][0], project['execution_plan'][1] = project['execution_plan'][1], project['execution_plan'][0]
+        with self.assertRaisesRegex(ValueError, '源码边界'):
+            require_compiled(project)
+        project = copy.deepcopy(before)
+        project['segments'][0]['source_end'] = None
+        with self.assertRaisesRegex(ValueError, '源码位置'):
+            require_compiled(project)
+        project = copy.deepcopy(before)
+        project['segments'][0]['source_end'] = project['execution_plan'][1]['source_end']
+        with self.assertRaisesRegex(ValueError, '源码位置'):
+            require_compiled(project)
 
 
 class PipelineTests(unittest.TestCase):

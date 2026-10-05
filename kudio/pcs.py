@@ -6,6 +6,7 @@ A backslash immediately before ``#[`` escapes that literal through its first
 """
 import math
 import re
+from bisect import bisect_left
 
 
 COMMANDS = ('p', 'pause', 'rate', 'section', 'voice')
@@ -222,3 +223,37 @@ def parse_source(text, source_format='txt'):
         stats[key] = sum(n['type'] == 'control' and n['command'] == command and n['valid'] for n in ast)
     return {'source_format': source_format, 'ast': ast,
             'diagnostics': diagnostics, 'stats': stats, 'valid': stats['errors'] == 0}
+
+
+def format_pcs_result(text, offsets=None):
+    """Canonicalize adjacent controls using authoritative AST source spans.
+
+    Only a redundant hash at a ``]##[`` control seam is removed. All other
+    source bytes represented by the string, including whitespace, raw values
+    and escaped literal tags, remain untouched. Offsets are Unicode codepoint
+    positions between source characters, never browser UTF-16 offsets.
+    """
+    parsed = parse_source(text, 'pcs')
+    if not parsed['valid']:
+        messages = [item['message'] for item in parsed['diagnostics'] if item['level'] == 'error']
+        raise ValueError('脚本尚未通过解析：' + '；'.join(messages))
+    if offsets is None:
+        offsets = []
+    if not isinstance(offsets, (list, tuple)) or any(
+            isinstance(offset, bool) or not isinstance(offset, int) or not 0 <= offset <= len(text)
+            for offset in offsets):
+        raise ValueError('源码位置必须是源稿范围内的 Unicode 字符偏移整数')
+    removed, previous = [], None
+    for node in parsed['ast']:
+        if (previous is not None and previous['type'] == node['type'] == 'control'
+                and previous['source_end'] == node['source_start']):
+            removed.append(node['source_start'])
+        previous = node
+    deleted = set(removed)
+    return {'text': ''.join(char for index, char in enumerate(text) if index not in deleted),
+            'offsets': [offset - bisect_left(removed, offset) for offset in offsets]}
+
+
+def format_pcs(text):
+    """Return canonical PCS without changing grammar or any spoken content."""
+    return format_pcs_result(text)['text']

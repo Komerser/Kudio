@@ -2,17 +2,32 @@
 import copy
 import hashlib
 import json
-import uuid
 from collections import defaultdict, deque
 
 from .pcs import PCS_VERSION, decode_literal_text, parse_source
+from .source import source_hash
 from .text import split_text_with_spans
 from .tts import build_tts_payload, effective_voice
 
 
-def source_hash(text):
-    """Hash untouched source text to identify stale compiled plans."""
-    return hashlib.sha256(text.encode('utf-8')).hexdigest()
+def _event_id(source_digest, node, event_type):
+    """Identify one control deterministically; segment IDs still use reuse."""
+    identity = {'source_hash': source_digest,
+                'source_start': node['source_start'], 'source_end': node['source_end'],
+                'type': event_type, 'value': node['value']}
+    encoded = json.dumps(identity, ensure_ascii=False, sort_keys=True,
+                         separators=(',', ':'), allow_nan=False)
+    return 'evt_' + hashlib.sha256(encoded.encode('utf-8')).hexdigest()
+
+
+def compile_control_event(node, source_digest):
+    """Map a validated control into the frozen execution-event vocabulary."""
+    event_type, value_key = {'p': ('page', 'page'), 'pause': ('pause', 'duration_ms'),
+                             'rate': ('rate', 'value'), 'section': ('section', 'name'),
+                             'voice': ('voice', 'label')}[node['command']]
+    return {'kind': 'event', 'id': _event_id(source_digest, node, event_type),
+            'source_start': node['source_start'], 'source_end': node['source_end'],
+            'type': event_type, value_key: node['value']}
 
 
 def segment_fingerprint(segment, voice=None):
@@ -73,6 +88,8 @@ def compile_source(text, limit=160, voice=None, previous_segments=None, source_f
     Parser errors are returned with ``valid=False`` and empty output lists so
     callers can display diagnostics. Invalid API argument types raise ValueError.
     Unset rate is None and inherits the effective project/segment voice speed.
+    PCS section is the explicit semantic scope. Natural chapter labels remain
+    legacy splitter metadata only; TXT retains its original chapter behavior.
     """
     if isinstance(limit, bool) or not isinstance(limit, int) or limit < 1:
         raise ValueError('每段最大字数必须是正整数')
@@ -84,23 +101,16 @@ def compile_source(text, limit=160, voice=None, previous_segments=None, source_f
     page, section, rate, chapter, voice_label = None, None, None, '正文', None
     for node in parsed['ast']:
         if node['type'] == 'control':
-            event = {'kind': 'event', 'id': uuid.uuid4().hex,
-                     'source_start': node['source_start'], 'source_end': node['source_end']}
+            event = compile_control_event(node, result['source_hash'])
             command, value = node['command'], node['value']
             if command == 'p':
                 page = value
-                event.update(type='page', page=page)
-            elif command == 'pause':
-                event.update(type='pause', duration_ms=value)
             elif command == 'rate':
                 rate = value
-                event.update(type='rate', value=rate)
             elif command == 'section':
                 section = value
-                event.update(type='section', name=section)
             elif command == 'voice':
                 voice_label = value
-                event.update(type='voice', label=voice_label)
             ordering.append(event)
             continue
         raw = text[node['source_start']:node['source_end']]

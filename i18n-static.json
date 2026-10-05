@@ -282,5 +282,17 @@
   "仅重做这一段": {"en": "Regenerate this segment", "ja": "このセグメントだけ再生成"},
   "保存为待生成": {"en": "Save as pending", "ja": "生成待ちとして保存"},
   "取消": {"en": "Cancel", "ja": "キャンセル"},
-  "界面语言": {"en": "Interface language", "ja": "表示言語"}
+  "界面语言": {"en": "Interface language", "ja": "表示言語"},
+  "Voice · 声线名称": {
+    "en": "Voice · Label",
+    "ja": "Voice · 声のラベル"
+  },
+  "规范 PCS 格式": {
+    "en": "Format PCS",
+    "ja": "PCS を整形"
+  },
+  "仅规范连续控制标签，保留正文、空白与转义": {
+    "en": "Normalize adjacent controls; preserve text, whitespace and escapes.",
+    "ja": "連続する制御タグだけを整形し、本文・空白・エスケープを保持します。"
+  }
 }

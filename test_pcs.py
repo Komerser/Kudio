@@ -1,5 +1,6 @@
 """Pure PCS/compiler/TTS regression tests; no models or HTTP service needed."""
 import copy
+import hashlib
 import io
 import json
 from pathlib import Path
@@ -12,7 +13,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from kudio.compiler import compile_source, segment_fingerprint
-from kudio.pcs import lex_source, parse_source
+from kudio.pcs import format_pcs, format_pcs_result, lex_source, parse_source
 from kudio.text import split_text
 from kudio.tts import build_tts_payload, infer_segment
 
@@ -45,6 +46,46 @@ def sample_wav():
 
 
 class PCSParserTests(unittest.TestCase):
+    def test_canonical_formatter_only_normalizes_adjacent_control_hashes(self):
+        source = ('  😀\r\n#[ P : 01 ]##[ rate : .90 ]#[section:序章:一]##[voice:narrator]#'
+                  '正文 \r\n' + r'\#[p:8]##[rate:1]#' + '\r\n#[pause:00800]#  ')
+        expected = ('  😀\r\n#[ P : 01 ]#[ rate : .90 ]#[section:序章:一]#[voice:narrator]#'
+                    '正文 \r\n' + r'\#[p:8]##[rate:1]#' + '\r\n#[pause:00800]#  ')
+        self.assertEqual(format_pcs(source), expected)
+        self.assertEqual(format_pcs(expected), expected)
+        before, after = parse_pcs(source), parse_pcs(expected)
+        self.assertEqual(before['stats']['control_nodes'], after['stats']['control_nodes'])
+        self.assertEqual([(n['command'], n['value']) for n in before['ast'] if n['type'] == 'control'],
+                         [(n['command'], n['value']) for n in after['ast'] if n['type'] == 'control'])
+
+    def test_canonical_formatter_preserves_text_gaps_and_escaped_openers(self):
+        for source in ('', '  普通😀正文\r\n', '#[p:1]# #[rate:1]#正文',
+                       '#[p:1]#\r\n#[voice:narrator]#正文',
+                       r'\#[p:1]##[voice:narrator]#正文', r'\#[pause:800]##[p:2]##[rate:1]#'):
+            with self.subTest(source=source):
+                expected = source.replace(']##[rate:1]', ']#[rate:1]') if source.endswith('[rate:1]#') else source
+                self.assertEqual(format_pcs(source), expected)
+
+    def test_canonical_formatter_maps_unicode_codepoint_carets(self):
+        source = '😀#[p:1]##[voice:narrator]##[rate:0.9]#正文'
+        removed = [node['source_start'] for prev, node in zip(parse_pcs(source)['ast'], parse_pcs(source)['ast'][1:])
+                   if prev['type'] == node['type'] == 'control' and prev['source_end'] == node['source_start']]
+        offsets = list(range(len(source) + 1))
+        result = format_pcs_result(source, offsets)
+        self.assertEqual(result['text'], '😀#[p:1]#[voice:narrator]#[rate:0.9]#正文')
+        self.assertEqual(result['offsets'], [offset - sum(index < offset for index in removed) for offset in offsets])
+        for offset, mapped in zip(offsets, result['offsets']):
+            prefix = ''.join(char for index, char in enumerate(source[:offset]) if index not in removed)
+            self.assertEqual(result['text'][:mapped], prefix)
+
+    def test_canonical_formatter_rejects_invalid_source_and_offsets(self):
+        for source in ('#[voice:]#正文', '#[rate:4]#', '#[p:1', '#[unknown:1]#'):
+            with self.subTest(source=source), self.assertRaises(ValueError):
+                format_pcs(source)
+        for offsets in (1, '1', [True], [-1], [4], [1.0], [None]):
+            with self.subTest(offsets=offsets), self.assertRaises(ValueError):
+                format_pcs_result('abc', offsets)
+
     def test_txt_is_literal_without_lexing_validation_or_escape_decoding(self):
         for text in ('#[p:1]#hello', 'A#[pause:800]#B', '#[xxx:1]#', '#[p:abc]#',
                      '#[p:1', r'\#[p:1]#', '#[p:#[rate:1]#]#'):
@@ -175,6 +216,46 @@ class PCSParserTests(unittest.TestCase):
 
 
 class PCSCompilerTests(unittest.TestCase):
+    def test_event_ids_are_deterministic_for_every_frozen_control(self):
+        source = '#[p:2]#[pause:40]#[rate:.8]#[section:序章]#[voice:narrator]#正文😀。'
+        first, second = compile_pcs(source), compile_pcs(source)
+        events = [event for event in first['execution_plan'] if event['kind'] == 'event']
+        self.assertEqual(events, [event for event in second['execution_plan'] if event['kind'] == 'event'])
+        self.assertEqual(len(set(event['id'] for event in events)), 5)
+        for event in events:
+            self.assertRegex(event['id'], r'^evt_[0-9a-f]{64}$')
+        node = first['ast'][0]
+        seed = {'source_hash': hashlib.sha256(source.encode('utf-8')).hexdigest(),
+                'source_start': node['source_start'], 'source_end': node['source_end'], 'type': 'page', 'value': 2}
+        encoded = json.dumps(seed, ensure_ascii=False, sort_keys=True, separators=(',', ':'), allow_nan=False)
+        self.assertEqual(events[0]['id'], 'evt_' + hashlib.sha256(encoded.encode('utf-8')).hexdigest())
+
+    def test_event_value_change_changes_id_without_resetting_unaffected_speech(self):
+        first = compile_pcs('A#[pause:400]#B')
+        for segment in first['segments']:
+            segment.update(status='done', duration=.1, audio_version='existing')
+        changed = compile_pcs('A#[pause:500]#B', previous_segments=first['segments'])
+        before = next(event for event in first['execution_plan'] if event['kind'] == 'event')
+        after = next(event for event in changed['execution_plan'] if event['kind'] == 'event')
+        self.assertNotEqual(before['id'], after['id'])
+        self.assertEqual([s['id'] for s in first['segments']], [s['id'] for s in changed['segments']])
+        self.assertTrue(all(s['status'] == 'done' and s['audio_version'] == 'existing' for s in changed['segments']))
+
+    def test_canonical_format_reuses_segments_and_keeps_audio_fingerprints(self):
+        source = '#[p:2]##[voice:narrator]##[rate:0.9]#正文。'
+        previous = compile_pcs(source)['segments']
+        previous[0].update(status='done', audio_version='existing', duration=.1)
+        canonical = compile_pcs(format_pcs(source), previous_segments=previous)
+        self.assertEqual(canonical['segments'][0]['id'], previous[0]['id'])
+        self.assertEqual(canonical['segments'][0]['fingerprint'], previous[0]['fingerprint'])
+        self.assertEqual(canonical['segments'][0]['audio_version'], 'existing')
+
+    def test_pcs_section_is_explicit_scope_and_chapter_is_only_legacy_metadata(self):
+        result = compile_pcs('第一章 自然\nA#[section:正式章节]#第二章 自然\nB')
+        self.assertEqual([s['section'] for s in result['segments']], [None, None, '正式章节', '正式章节'])
+        self.assertEqual([s['chapter'] for s in result['segments']], ['第一章 自然', '第一章 自然', '第二章 自然', '第二章 自然'])
+        self.assertEqual([event['type'] for event in result['execution_plan'] if event['kind'] == 'event'], ['section'])
+
     def test_voice_labels_form_boundaries_and_persist_without_spoken_controls(self):
         result = compile_pcs('默认。#[voice:male_elder]#你好。\n继续。#[voice:female_child]#再见。')
         self.assertTrue(result['valid'])

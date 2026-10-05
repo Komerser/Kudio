@@ -12,7 +12,8 @@ function fixture(id,format='pcs'){
  const text=format==='pcs'?'#[voice:male_elder]#第一句。#[voice:female_child]#第二句。':'普通正文。';
  const ast=format==='pcs'?[{type:'control',command:'voice',value:'male_elder',source_start:0,source_end:20},{type:'text',text:'第一句。',source_start:20,source_end:24},{type:'control',command:'voice',value:'female_child',source_start:24,source_end:46},{type:'text',text:'第二句。',source_start:46,source_end:50}]:[{type:'text',text,source_start:0,source_end:text.length}];
  const segments=(format==='pcs'?['male_elder','female_child']:['']).map((label,i)=>({id:id+(i+1),text:format==='pcs'?(i?'第二句。':'第一句。'):text,voice_label:label||null,chapter:'正文',role:'旁白',status:'pending',duration:0,page:null,section:null,rate:null,source_format:format,overrides:{},resolved_role_id:label==='female_child'?'r2':'r1',resolved_role_name:label==='female_child'?'少女':'长者'}));
- return {project:{id,title:id,voice:voice('作品原声音'),source_text:text,source_format:format,limit:160,ast,diagnostics:[],segments,execution_plan:segments.map(s=>({kind:'speech',segment_id:s.id})),timeline:{timing_status:'estimated',duration_ms:2000,segments:segments.map((s,i)=>({...s,start_ms:i*1000,end_ms:(i+1)*1000,estimated:true})),events:[]},exports:[],default_role_id:'r1',voice_bindings:format==='pcs'?{male_elder:'r1',female_child:'r2'}:{},role_snapshots:Object.fromEntries(roles.map(r=>[r.id,clone(r)])),voice_labels:format==='pcs'?['male_elder','female_child']:[],voice_binding_errors:[]},active:null};
+ const events=format==='pcs'?ast.filter(n=>n.type==='control').map(n=>({kind:'event',type:'voice',label:n.value,source_start:n.source_start,source_end:n.source_end,time_ms:n.value==='female_child'?1000:0})):[];
+ return {project:{id,title:id,voice:voice('作品原声音'),source_text:text,source_format:format,limit:160,ast,diagnostics:[],segments,execution_plan:segments.flatMap((s,i)=>[...(events[i]?[events[i]]:[]),{kind:'speech',segment_id:s.id}]),timeline:{timing_status:'estimated',duration_ms:2000,segments:segments.map((s,i)=>({...s,start_ms:i*1000,end_ms:(i+1)*1000,estimated:true})),events},exports:[],default_role_id:'r1',voice_bindings:format==='pcs'?{male_elder:'r1',female_child:'r2'}:{},role_snapshots:Object.fromEntries(roles.map(r=>[r.id,clone(r)])),voice_labels:format==='pcs'?['male_elder','female_child']:[],voice_binding_errors:[]},active:null};
 }
 
 
@@ -74,13 +75,56 @@ function harness(){
 }
 const tests=[];const test=(name,fn)=>tests.push({name,fn});
 test('every studio UI key has English and Japanese with matching placeholders',()=>{
- for(const name of ['studio.js','pcs-editor.js','segmentation.js']){
+ for(const name of ['studio.js','pcs-editor.js','segmentation.js','rebuild.js']){
   const source=fs.readFileSync(__dirname+'/'+name,'utf8');
-  for(const match of source.matchAll(/uiText\('([^']+)'\)/g))assert(catalog[match[1]],name+' missing translation: '+match[1]);
+  for(const match of source.matchAll(/uiText\('([^']+)'(?:\)|,)/g))assert(catalog[match[1]],name+' missing translation: '+match[1]);
  }
  for(const [key,translations] of Object.entries(JSON.parse(fs.readFileSync(__dirname+'/i18n-studio.json','utf8')))){
   const placeholders=value=>[...value.matchAll(/\{(\w+)\}/g)].map(m=>m[1]).sort();
   for(const language of ['en','ja']){assert.equal(typeof translations[language],'string',key+' missing '+language);assert.deepEqual(placeholders(translations[language]),placeholders(key),key+' placeholder mismatch: '+language)}
+ }
+});
+test('Voice is a localized first-class control in chips, AST, plan, timeline and parser summary',async()=>{
+ const h=harness();await h.boot();
+ const summary='{result} · {pages} Page · {pauses} Pause · {rates} Rate · {sections} Section · {voices} Voice · {warnings} Warning';
+ for(const language of ['zh','en','ja']){
+  h.language(language);
+  const label=h.t('VOICE · {label}',{label:'male_elder'});
+  for(const id of ['scriptVisual','astNodes','executionPlan','timelineEvents'])assert(h.element(id).textContent.includes(label),id+' omitted Voice in '+language);
+  const expected=h.t(summary,{result:h.t('✓ PCS 语法有效'),pages:0,pauses:0,rates:0,sections:0,voices:2,warnings:0});
+  assert.equal(h.element('parserSummary').textContent,expected);h.run("processSummary('parse')");assert.equal(h.element('parserSummary').textContent,expected);
+  assert.equal(h.element('formatScript').textContent,h.t('规范 PCS 格式'));assert.equal(h.element('formatScript').getAttribute('title'),h.t('仅规范连续控制标签，保留正文、空白与转义'));
+  const options=h.element('controlCommand').options.filter(o=>o.value==='voice');assert.equal(options.length,1);assert.equal(options[0].textContent,h.t('Voice · 声线名称'));
+  h.element('insertVoice').onclick();assert.equal(h.element('controlValue').value,'narrator');assert.equal(h.run('project.voice_bindings.male_elder'),'r1');
+ }
+});
+test('PCS section labels take precedence, while TXT chapter labels and legacy groups stay readable',async()=>{
+ const h=harness();await h.boot();h.run("project.segments[0].section='专题';project.segments[0].chapter='自然标题不应成为PCS章节';render()");
+ for(const language of ['en','ja']){
+  h.language(language);assert(h.element('segments').textContent.includes(h.t('SECTION {value}',{value:'专题'})));assert(!h.element('segments').textContent.includes('自然标题不应成为PCS章节'));
+  assert.equal(h.element('groupPanelTitle').textContent,h.t('兼容分组与导出'));assert.equal(h.element('showSuggestions').textContent,h.t('旧分组建议（兼容）'));assert(h.element('groupPanelNotice').textContent.includes('section'));
+ }
+ await h.run("load('B')");h.run("project.segments[0].chapter='第一章';render()");h.language('ja');assert(h.element('segments').textContent.includes(h.t('章节 · {name}',{name:'第一章'})));assert(h.element('textSegments').textContent.includes('第一章'));assert.equal(h.element('groupPanelTitle').textContent,h.t('章节分组与导出'));
+});
+test('language changes during backend formatting preserve the draft until atomic completion',async()=>{
+ const h=harness();await h.boot();const original='😀#[p:1]##[voice:narrator]#正文',formatted='😀#[p:1]#[voice:narrator]#正文';h.element('source').value=original;h.run('scriptSourceChanged()');h.element('source').setSelectionRange(2,original.length);let finish;
+ h.setHandler(path=>{assert.equal(path,'pcs/format');return new Promise(resolve=>finish=resolve)});
+ const pending=h.element('formatScript').onclick(),snapshot=h.run('JSON.stringify(scriptDraft())');
+ for(const language of ['en','ja']){h.language(language);assert.equal(h.run('JSON.stringify(scriptDraft())'),snapshot);assert.equal(h.element('source').value,original);assert.equal(h.element('source').selectionStart,2);assert.equal(h.element('source').selectionEnd,original.length);assert(h.element('insertVoice').disabled)}
+ finish({text:formatted,offsets:[1,Array.from(formatted).length]});await pending;assert.equal(h.element('source').value,formatted);assert.equal(h.element('source').selectionStart,2);assert.equal(h.element('source').selectionEnd,formatted.length);assert.equal(h.element('toast').textContent,h.t('PCS 格式已规范，正文保持不变'));
+});
+test('format errors and stale-compilation notices translate without changing source or WAV playback',async()=>{
+ const h=harness();await h.boot();const original='😀#[unknown:x]#';h.element('source').value=original;h.run('scriptSourceChanged()');h.element('source').setSelectionRange(3,8);let fail;
+ h.setHandler(path=>{assert.equal(path,'pcs/format');return new Promise((resolve,reject)=>fail=reject)});const pending=h.element('formatScript').onclick();h.language('ja');const error='控制事件与源稿不一致，请重新编译源稿';fail(Error(error));await pending;
+ assert.equal(h.element('source').value,original);assert.equal(h.element('source').selectionStart,3);assert.equal(h.element('source').selectionEnd,8);assert(h.element('toast').textContent.includes(h.t('PCS 格式处理失败，原稿未修改：{error}',{error:h.t(error)})));
+ const stale=harness();await stale.boot();stale.run("project.compilation_stale=true;project.timeline=null;project.kson=null;render()");const source=stale.element('source').value;
+ for(const language of ['en','ja']){stale.language(language);assert.equal(stale.element('scriptState').textContent,stale.t('需重新编译'));assert.equal(stale.element('applyScript').textContent,stale.t('重新编译脚本'));assert.equal(stale.element('timelineEvents').children.length,0);assert.equal(stale.element('timelineStrip').children.length,0);assert.equal(stale.element('source').value,source);assert(stale.element('start').disabled);assert.equal(stale.element('applyScript').disabled,false)}
+});
+test('aggregated backend formatter diagnostics translate in Chinese, English and Japanese',async()=>{
+ const h=harness();await h.boot();const original='#[voice:]##[unknown:x]#',messages=['声音标签必须是 1–80 个字符，不包含换行或控制字符','未知 PCS 指令：unknown'];h.element('source').value=original;h.run('scriptSourceChanged()');h.element('source').setSelectionRange(2,8);
+ for(const language of ['zh','en','ja']){
+  h.language(language);h.setHandler(path=>{assert.equal(path,'pcs/format');throw Error(h.t('脚本尚未通过解析：{errors}',{errors:messages.join('；')}))});await h.element('formatScript').onclick();
+  const errors=messages.map(message=>h.t(message)).join(' · '),detail=h.t('脚本尚未通过解析：{errors}',{errors});assert(h.element('toast').textContent.includes(h.t('PCS 格式处理失败，原稿未修改：{error}',{error:detail})));assert.equal(h.element('source').value,original);assert.equal(h.element('source').selectionStart,2);assert.equal(h.element('source').selectionEnd,8);
  }
 });
 test('language switches redraw cached labels and preserve all unsaved drafts',async()=>{

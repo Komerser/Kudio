@@ -153,13 +153,13 @@ renderLibrary=function(){if(project){const current=library.find(p=>p.id===projec
  if(!shown.length)cards.append(node('p','library-empty',query?uiText('没有匹配作品'):uiText('还没有作品。新建一部，开始让文字发声。')));
 };
 function renderTextSegments(){
- const draft=scriptDraft(),preview=draft.compiled;const segments=preview?.segments||(!draft.dirty?project?.segments:[])||[];
- const key=JSON.stringify([project?.id,draft.revision,preview,segments.map(s=>[s.id,s.text,s.status,s.page,s.section,s.resolved_role_name,s.voice_label])]);if(key===textPreviewKey)return;textPreviewKey=key;
+ const draft=scriptDraft(),preview=draft.compiled;const segments=preview?.segments||(!scriptIsDirty()?project?.segments:[])||[];
+ const key=JSON.stringify([project?.id,draft.format,draft.revision,preview,project?.compilation_stale,segments.map(s=>[s.id,s.text,s.status,s.page,s.section,s.chapter,s.resolved_role_name,s.voice_label])]);if(key===textPreviewKey)return;textPreviewKey=key;
  put('textSegmentCount',uiText('{count} 个片段',{count:segments.length}));const list=$('textSegments');list.replaceChildren();
- if(!segments.length){list.append(node('p','empty',draft.dirty?uiText('点击“预览分段”查看修改后的朗读片段。'):uiText('导入或输入文本后，预览你的朗读片段。')));return}
+ if(!segments.length){list.append(node('p','empty',project?.compilation_stale?uiText('需重新编译 · 应用脚本后更新计划和时间轴'):draft.dirty?uiText('点击“预览分段”查看修改后的朗读片段。'):uiText('导入或输入文本后，预览你的朗读片段。')));return}
  const shown=segments.slice(0,60);for(const [index,s] of shown.entries()){
   const row=node('article','text-segment');const head=node('div','text-segment-head');head.append(node('span','segment-number',String(index+1).padStart(2,'0')),node('span','segment-role',s.resolved_role_name||s.voice_label||project?.voice?.name||uiText('默认角色')));
-  if(s.page!==null&&s.page!==undefined)head.append(node('span','muted',uiText('第 {page} 页',{page:s.page})));if(s.section)head.append(node('span','muted',s.section));row.append(head,node('p','',s.text));
+  if(s.page!==null&&s.page!==undefined)head.append(node('span','muted',uiText('第 {page} 页',{page:s.page})));if(draft.format==='pcs'&&s.section)head.append(node('span','muted',uiText('SECTION {value}',{value:s.section})));else if(draft.format==='txt'&&s.chapter&&s.chapter!=='正文')head.append(node('span','muted',uiText('章节 · {name}',{name:s.chapter})));row.append(head,node('p','',s.text));
   if(project&&project.segments.some(x=>x.id===s.id)&&s.status==='done')row.append(button(uiText('试听'),()=>playSegment(s.id)));list.append(row)
  }if(segments.length>shown.length)list.append(node('p','muted',uiText('这里只显示前 60 段，推理页可搜索并查看全部 {count} 段。',{count:segments.length})));
 }
@@ -171,10 +171,10 @@ function processSummary(kind){
  const body=$('processBody');body.replaceChildren();
  document.querySelectorAll('[data-process-panel]').forEach(e=>e.classList.toggle('hidden',!(kind==='parse'&&e.id==='parsePanel'||kind==='synthesis'&&e.id==='planPanel')));
  if(kind==='source'){body.append(node('p','process-metric',uiText('{format} · {count} 字',{format:draft.format==='pcs'?'PCS':'TXT',count:Array.from(draft.text).length.toLocaleString()})),node('p','muted',draft.dirty?uiText('文字有未应用的修改。'):uiText('文字已与当前作品同步。')))}
- if(kind==='parse'){const count=draft.compiled?.segments?.length??(!draft.dirty?segments.length:0),pauses=(draft.parse?.ast||[]).filter(n=>n.type==='control'&&n.command==='pause').length;body.append(node('p','process-metric',count?uiText('{count} 个朗读片段',{count}):uiText('预览后查看朗读片段')));put('parserSummary',scriptHasErrors()?uiText('文字有待修正的问题，请点击下方提示定位。'):uiText('{count} 种脚本声线 · {pauses} 处停顿 · 详细结构可按需展开。',{count:voiceLabels().length,pauses}))}
+ if(kind==='parse'){const count=draft.compiled?.segments?.length??(!scriptIsDirty()?segments.length:0);body.append(node('p','process-metric',count?uiText('{count} 个朗读片段',{count}):uiText('预览后查看朗读片段')));renderScriptParse(draft)}
  if(kind==='voices'){body.append(node('p','process-metric',voiceLabels().length?uiText('{count} 种脚本声线',{count:voiceLabels().length}):uiText('单角色配音')),node('p','muted',$('bindingNotice').textContent))}
  if(kind==='synthesis'){body.append(node('p','process-metric',uiText('{done} / {count} 段已完成',{done,count:segments.length})));$('planPanel').open=true}
- if(kind==='timeline'){body.append(node('p','process-metric',timecode((project?.timeline?.duration_ms||0)/1000)),node('p','muted',project?.timeline?.timing_status==='exact'?uiText('实测时长'):uiText('估算时长')));for(const event of (project?.timeline?.events||[]).slice(0,30))body.append(node('div','process-event',timecode((event.time_ms??event.start_ms??0)/1000)+' · '+controlLabel(event)))}
+ if(kind==='timeline'){body.append(node('p','process-metric',project?.compilation_stale?uiText('需重新编译'):timecode((project?.timeline?.duration_ms||0)/1000)),node('p','muted',project?.compilation_stale?uiText('应用脚本后，重新建立权威时间轴。'):project?.timeline?.timing_status==='exact'?uiText('实测时长'):uiText('估算时长')));if(!project?.compilation_stale)for(const event of (project?.timeline?.events||[]).slice(0,30))body.append(node('div','process-event',timecode((event.time_ms??event.start_ms??0)/1000)+' · '+controlLabel(event)))}
  if(kind==='export'){for(const file of project?.exports||[])body.append(download(file));if(!project?.exports?.length)body.append(node('p','muted',uiText('尚未导出作品。完成生成后，在推理页选择导出格式。')))}
  const destination=['source','parse','voices'].includes(kind)?'text':'inference';body.append(button(destination==='text'?uiText('回到文本工作区'):uiText('前往推理工作区'),()=>{$('processDialog').close();navigateStudio(destination)}));
 }
@@ -187,8 +187,8 @@ function renderContext(){
  put('contextCopy',studioPage==='roles'?uiText('角色保存声音与形象，在文本工作区决定谁来朗读。'):studioPage==='engine'?uiText('连接引擎后，回到文本工作区准备作品。'):uiText('点击任一步骤，查看简洁的处理详情。'));
  const stats=$('contextStats');stats.replaceChildren();for(const [value,label] of studioPage==='roles'?[[presets.length,uiText('已保存角色')]]:[[ss.length,uiText('朗读片段')],[done,uiText('生成完成')]]){const item=node('div','context-stat');item.append(node('strong','',value),node('span','',label));stats.append(item)}
  put('contextAction',studioPage==='roles'||studioPage==='engine'?uiText('去安排文本与角色'):studioPage==='text'?uiText('进入推理工作区'):uiText('回到文本工作区'));
- const draft=scriptDraft(),valid=scriptParsed()&&!scriptHasErrors();const status={source:draft.text?'complete':'waiting',parse:scriptHasErrors()?'error':valid?'complete':'waiting',voices:project?.voice_binding_errors?.length||castingIsDirty()||!defaultVoiceReady()?'unbound':project?'ready':'waiting',synthesis:active===project?.id?'running':done&&done===ss.length?'complete':'waiting',timeline:project?.timeline?.timing_status==='exact'?'exact':'estimated',export:project?.exports?.length?'exported':'waiting'};
- const statusLabels={complete:uiText('完成'),ready:uiText('已安排'),exact:uiText('实测'),error:uiText('需修正'),unbound:uiText('待安排'),running:uiText('生成中'),waiting:uiText('等待'),estimated:uiText('估算'),exported:uiText('已导出')};
+ const draft=scriptDraft(),valid=scriptParsed()&&!scriptHasErrors();const status={source:draft.text?'complete':'waiting',parse:scriptHasErrors()?'error':valid?'complete':'waiting',voices:project?.voice_binding_errors?.length||castingIsDirty()||!defaultVoiceReady()?'unbound':project?'ready':'waiting',synthesis:active===project?.id?'running':done&&done===ss.length?'complete':'waiting',timeline:project?.compilation_stale?'stale':project?.timeline?.timing_status==='exact'?'exact':'estimated',export:project?.compilation_stale?'stale':project?.exports?.length?'exported':'waiting'};
+ const statusLabels={complete:uiText('完成'),ready:uiText('已安排'),exact:uiText('实测'),error:uiText('需修正'),unbound:uiText('待安排'),running:uiText('生成中'),waiting:uiText('等待'),estimated:uiText('估算'),exported:uiText('已导出'),stale:uiText('需重新编译')};
  document.querySelectorAll('[data-process]').forEach(b=>{b.dataset.status=status[b.dataset.process];const badge=b.querySelector('.process-status');if(badge)badge.textContent=statusLabels[status[b.dataset.process]]});
 }
 $('contextAction').onclick=()=>navigateStudio(studioPage==='text'?'inference':'text');
@@ -197,11 +197,12 @@ function renderRebuild(){
  $('inferenceEmpty').classList.toggle('hidden',!!project);$('workspace').classList.toggle('hidden',!project);
  const castBlocked=castingIsDirty()||(project?.voice_binding_errors||[]).length>0||!defaultVoiceReady();
  if(castBlocked)for(const id of ['start','retry','export','exportAll','exportSrt','exportKson','exportKsonPreview'])$(id).disabled=true;
- if(project)put('bookTitle',project.title);put('scriptState',scriptIsDirty()?uiText('文字待应用'):scriptHasErrors()?uiText('文字需要修正'):scriptDraft().parseBusy?uiText('正在整理'):project?uiText('已保存'):uiText('新作品'));
- if(project?.timeline)put('timelineSummary',(scriptIsDirty()?uiText('文字修改待应用 · '):'')+(project.timeline.timing_status==='exact'?uiText('实测总时长 {duration} · 包含段间停顿',{duration:timecode((project.timeline.duration_ms||0)/1000)}):uiText('预计总时长 {duration} · 包含段间停顿，未生成的片段使用估算时长',{duration:timecode((project.timeline.duration_ms||0)/1000)})));
- put('rawMode',uiText('编辑文本'));put('visualMode',uiText('阅读预览'));put('parseScript',uiText('预览分段'));$('previewScript').classList.add('hidden');put('applyScript',uiText('应用文本修改'));
- if($('insertVoice'))$('insertVoice').disabled=!!active||scriptDraft().format!=='pcs';
- put('sourceNotice',scriptIsDirty()?uiText('文字修改尚未应用，原有音频会保留到应用时。'):scriptDraft().format==='pcs'?uiText('控制指令会整理为页码、停顿、语速、章节和声线，不参与朗读。'):uiText('按自然段、标点与每段字数整理文本，全文使用默认角色。'));
+ if(project)put('bookTitle',project.title);put('scriptState',project?.compilation_stale?uiText('需重新编译'):scriptIsDirty()?uiText('文字待应用'):scriptHasErrors()?uiText('文字需要修正'):scriptDraft().parseBusy?uiText('正在整理'):project?uiText('已保存'):uiText('新作品'));
+ if(project?.compilation_stale)put('timelineSummary',uiText('需重新编译 · 应用脚本后更新计划和时间轴'));
+ if(project?.timeline&&!project.compilation_stale)put('timelineSummary',(scriptIsDirty()?uiText('文字修改待应用 · '):'')+(project.timeline.timing_status==='exact'?uiText('实测总时长 {duration} · 包含段间停顿',{duration:timecode((project.timeline.duration_ms||0)/1000)}):uiText('预计总时长 {duration} · 包含段间停顿，未生成的片段使用估算时长',{duration:timecode((project.timeline.duration_ms||0)/1000)})));
+ put('rawMode',uiText('编辑文本'));put('visualMode',uiText('阅读预览'));put('parseScript',uiText('预览分段'));$('previewScript').classList.add('hidden');put('applyScript',project?.compilation_stale?uiText('重新编译脚本'):uiText('应用文本修改'));
+ put('groupPanelTitle',project?.source_format==='pcs'?uiText('兼容分组与导出'):uiText('章节分组与导出'));put('groupPanelNotice',project?.source_format==='pcs'?uiText('PCS 的正式章节由 section 控制；下列手动分组与旧建议仅用于兼容导出，不改变 PCS 章节。'):uiText('自动章节作为建议，确认后成为正式分组。可调整名称、边界与颜色；整本导出不受分组影响。'));put('showSuggestions',project?.source_format==='pcs'?uiText('旧分组建议（兼容）'):uiText('智能分段建议'));
+ put('sourceNotice',project?.compilation_stale?uiText('编译快照已失效。原有音频保留；请解析并应用脚本，重新建立计划和时间轴。'):scriptIsDirty()?uiText('文字修改尚未应用，原有音频会保留到应用时。'):scriptDraft().format==='pcs'?uiText('控制指令会整理为页码、停顿、语速、章节和声线，不参与朗读。'):uiText('按自然段、标点与每段字数整理文本，全文使用默认角色。'));
 }
 const renderBeforeRebuild=render;render=function(stopping=false){renderBeforeRebuild(stopping);renderRebuild()};
 const renderScriptWorkspaceBeforeRebuild=renderScriptWorkspace;renderScriptWorkspace=function(){renderScriptWorkspaceBeforeRebuild();renderRebuild()};
@@ -209,21 +210,18 @@ const loadBeforeRebuild=load;load=async function(id){await loadBeforeRebuild(id)
 const showNewBeforeRebuild=showNew;showNew=function(){showNewBeforeRebuild();navigateStudio('text');restoreRoleEditor()};
 const openEditorBeforeRebuild=openEditor;openEditor=function(id){openEditorBeforeRebuild(id);const s=project?.segments.find(s=>s.id===id);if(!s)return;const roleId=s.resolved_role_id||project.default_role_id,role=project.role_snapshots?.[roleId];const v={...project.voice,...role?.voice,...s.overrides};if(s.rate!==null&&s.rate!==undefined)v.speed=s.rate;for(const [field,key] of [['editSpeed','speed'],['editSeed','seed'],['editLanguage','text_lang'],['editReference','reference'],['editPrompt','prompt'],['editPromptLang','prompt_lang']])$(field).value=v[key]};
 const segmentMetadataBeforeRebuild=segmentMetadata;segmentMetadata=function(s){const row=segmentMetadataBeforeRebuild(s);if(s.resolved_role_name||s.voice_label)row.prepend(node('span','pcs-chip pcs-voice',s.resolved_role_name||s.voice_label));return row};
-const controlLabelBeforeRebuild=controlLabel;controlLabel=function(n){return n.command==='voice'||n.type==='voice'?uiText('声线 · {label}',{label:n.value??n.voice_label??n.label}):controlLabelBeforeRebuild(n)};
 $('parseScript').onclick=()=>safe(async()=>{const parsed=await parseScript();if(parsed?.valid!==false&&scriptParsed())await previewScript();renderRebuild();if(scriptHasErrors()){processSummary('parse');$('processDialog').showModal()}});
 $('previewScript').onclick=$('parseScript').onclick;
 for(const id of ['start','retry','export','exportAll','exportSrt','exportKson','exportKsonPreview']){const before=$(id).onclick;$(id).onclick=e=>{if(castingIsDirty()){notify(uiText('请先在文本页保存角色安排'));return}if(project?.voice_binding_errors?.length||!defaultVoiceReady()){notify(uiText('请先在文本页完成默认角色和声线绑定'));return}return before?.(e)}}
-const voiceOption=new Option(uiText('Voice · 声线名称'),'voice');$('controlCommand').add(voiceOption);
 function refreshRebuildLanguage(){
  roleCardsKey='';bookCardsKey='';textPreviewKey='';castingKey='';
  const copy=pageCopy[studioPage];if(copy){put('pageTitle',uiText(copy[1]));put('pageSubtitle',uiText(copy[2]))}
  mobileLibraryToggle.textContent=document.body.classList.contains('mobile-library-collapsed')?uiText('展开作品目录 ＋'):uiText('收起作品目录 −');
  bindingSyncButton.textContent=uiText('同步角色库配置');bindingSyncButton.title=uiText('主动更新作品内已保存的声音配置，只同步仍在角色库中的角色');
- voiceOption.text=uiText('Voice · 声线名称');renderRolePreview();
+ renderRolePreview();
  put('presetNotice',roleEditorDirty?uiText('此角色有未保存的修改。'):selectedRoleId?uiText('角色已载入。修改后保存，可在文本页安排配音。'):uiText('选择模型和参考音频，保存你的第一个角色。'));
  renderTrash(trashedBooks);renderRebuild();
  if($('processDialog').open&&currentProcessKind)processSummary(currentProcessKind);
 }
-if($('insertVoice'))$('insertVoice').onclick=()=>{$('controlCommand').value='voice';$('controlValue').value='male_elder';$('controlValue').focus()};
 let initialPage='text';try{initialPage=sessionStorage.getItem('kudioWorkspace')||'text'}catch{}
 restoreRoleEditor();navigateStudio(initialPage);

@@ -11,7 +11,7 @@ PCS is a lightweight control language embedded in otherwise normal narration. It
 
 Read `references/pcs-v0.1.md` when exact PCS syntax, boundary behavior, validation rules, or downstream Kudio behavior is needed.
 
-For Kudio Local 1.6.3, also read [Kudio compatibility](references/kudio-compatibility.md) before authoring or validating PCS. Its concrete parser limits, voice-label binding rules, and export distinctions take precedence over the conceptual examples in `references/pcs-v0.1.md`. The bundled reference remains the semantic explanation; its KSON examples are not the actual Kudio export schema. The implementation in `Kudio_Local/kudio/pcs.py` and the specification in `Kudio_Local/docs/PCS_KSON.md` are authoritative for the installed application.
+For Kudio Local 1.6.4, also read [Kudio compatibility](references/kudio-compatibility.md) before authoring or validating PCS. Its concrete parser limits, voice-label binding rules, and export distinctions take precedence over the conceptual examples in `references/pcs-v0.1.md`. The bundled reference remains the semantic explanation; its KSON examples are not the actual Kudio export schema. The implementation in `Kudio_Local/kudio/pcs.py` and the specification in `Kudio_Local/docs/PCS_KSON.md` are authoritative for the installed application.
 
 ## Primary goal
 
@@ -131,11 +131,12 @@ When asked to produce both readable narration and PCS, deliver one readable `.pc
 
 ## Constraints
 
+- PCS 0.1 grammar and its five supported commands are frozen. Generate adjacent controls in canonical shared-boundary form, for example `#[p:1]#[section:intro]#[voice:narrator]#`. Old double-hash input remains compatible, but is not a generated or repaired output style. Keep all narration, intentional whitespace and escaped literal markers intact.
 - Never place spoken content inside a PCS marker.
 - Never output malformed controls such as `#[p=2]#` or `[p:2]`.
 - Never silently reinterpret an unknown command as a supported command.
 - Never allow PCS markers to appear in TTS text.
-- Do not add future/reserved controls such as `focus`, `cursor`, `zoom`, `click`, or `highlight` unless the user explicitly requests an experimental extension.
+- Do not add future/reserved controls such as `focus`, `cursor`, `zoom`, `click`, or `highlight` to scripts for Kudio PCS 0.1; the installed parser rejects them.
 - Do not export a KSON timeline or fabricate audio timestamps. The reference's KSON examples explain downstream processing only.
 
 ## Minimal example

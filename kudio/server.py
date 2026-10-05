@@ -21,11 +21,11 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse, parse_qs, urlencode
 from .models import defaults, validate_voice
 from .text import split_text
-from .pcs import parse_source
+from .pcs import parse_source, format_pcs_result
 from .compiler import compile_source, segment_fingerprint
 from .tts import build_tts_payload, infer_segment, effective_voice
 from .roles import voice_labels, resolved_role, binding_errors, require_bindings, apply_bindings
-from .projects import migrate_project, apply_compilation, require_compiled
+from .projects import migrate_project, apply_compilation, require_compiled, refresh_source_cache
 from .timeline import build_timeline, wav_details
 from .exporters import build_kson, write_srt, write_kson, merge_wav
 
@@ -459,25 +459,37 @@ def tail_log(path, size=18000):
 def project_view(p):
     """Present a shared timeline and draft KSON without changing the saved project."""
     p = copy.deepcopy(p)
+    refresh_source_cache(p)
+    p['compilation_stale'], p['compilation_error'] = False, ''
+    try:
+        require_compiled(p)
+    except ValueError as exc:
+        # Keep existing speech/audio recoverable, but never present an obsolete
+        # execution snapshot as an exact timeline for the current source.
+        p['compilation_stale'], p['compilation_error'] = True, str(exc)
     p['folder'] = str(project_dir(p['id']).resolve())
     p['voice_labels'] = voice_labels(p)
     p['voice_binding_errors'] = binding_errors(p)
-    timeline = build_timeline(p, project_dir(p['id']), format_audio=export_source)
-    by_id = {s['id']: s for s in timeline['segments']}
+    timeline = None if p['compilation_stale'] else build_timeline(
+        p, project_dir(p['id']), format_audio=export_source)
+    by_id = {s['id']: s for s in timeline['segments']} if timeline else {}
     for i, s in enumerate(p['segments']):
-        timing = by_id[s['id']]
-        s['timeline'] = {'start': timing['start_ms'] / 1000, 'end': timing['end_ms'] / 1000,
-                         'estimated': timing['estimated']}
-        if s.get('status') == 'done' and not timing['estimated']:
-            s['duration'] = timing['duration_ms'] / 1000
+        timing = by_id.get(s['id'])
+        if timing is not None:
+            s['timeline'] = {'start': timing['start_ms'] / 1000, 'end': timing['end_ms'] / 1000,
+                             'estimated': timing['estimated']}
+            if s.get('status') == 'done' and not timing['estimated']:
+                s['duration'] = timing['duration_ms'] / 1000
+        else:
+            s.pop('timeline', None)
         s['number'] = i + 1
         role_id, role = resolved_role(s, p)
         s['resolved_role_id'] = role_id
         s['resolved_role_name'] = role['name'] if role else p['voice'].get('name', '默认角色')
-    p['timeline'] = {k: v for k, v in timeline.items() if k not in ('items',)}
-    p['timeline_duration'] = timeline['duration_ms'] / 1000
-    p['timeline_estimated'] = timeline['timing_status'] != 'exact'
-    p['kson'] = build_kson(p, timeline)
+    p['timeline'] = {k: v for k, v in timeline.items() if k not in ('items',)} if timeline else None
+    p['timeline_duration'] = timeline['duration_ms'] / 1000 if timeline else 0
+    p['timeline_estimated'] = timeline is None or timeline['timing_status'] != 'exact'
+    p['kson'] = build_kson(p, timeline) if timeline else None
     p['suggestions'] = suggest_groups(p)
     return p
 
@@ -485,8 +497,11 @@ def project_view(p):
 def suggest_groups(p):
     groups = []
     for segment in p['segments']:
-        if not groups or groups[-1]['name'] != segment['chapter']:
-            groups.append({'name': segment['chapter'], 'start': segment['id'], 'end': segment['id'], 'source': 'auto'})
+        # TXT/legacy chapter detection remains compatible. PCS sections are
+        # authored controls, independent of natural-language heading guesses.
+        name = (segment.get('section') or '正文') if p.get('source_format') == 'pcs' else segment['chapter']
+        if not groups or groups[-1]['name'] != name:
+            groups.append({'name': name, 'start': segment['id'], 'end': segment['id'], 'source': 'auto'})
         else:
             groups[-1]['end'] = segment['id']
     hidden = set(p.get('dismissed_suggestions', []))
@@ -1145,6 +1160,9 @@ class Handler(BaseHTTPRequestHandler):
             action = self.path
             if action == '/api/pcs/parse':
                 self.reply(parse_source(d['text'], d.get('source_format', 'txt')))
+                return
+            if action == '/api/pcs/format':
+                self.reply(format_pcs_result(d['text'], d.get('offsets')))
                 return
             if action == '/api/pcs/compile':
                 self.reply(compile_source(d['text'], int(d.get('limit', 160)),

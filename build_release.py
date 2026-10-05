@@ -12,7 +12,7 @@ VERSION = (ROOT / 'VERSION.txt').read_text(encoding='utf-8').strip()
 FILES = ['app.py', 'engine_runner.py', 'training_runner.py', 'index.html',
          'studio.js', 'pcs-editor.js', 'segmentation.js', 'library.js', 'kudio.js', 'assets.js', 'rebuild.js', 'i18n.js', 'i18n-catalog.js', 'studio.css', 'launch.ps1',
          '启动Kudio.bat', '配置引擎.bat', '使用说明.txt', 'VERSION.txt', 'README.md', 'docs/PCS_KSON.md']
-FILES += ['kudio/' + name for name in ('__init__.py', 'server.py', 'projects.py', 'models.py',
+FILES += ['kudio/' + name for name in ('__init__.py', 'server.py', 'source.py', 'projects.py', 'models.py',
           'pcs.py', 'compiler.py', 'text.py', 'tts.py', 'timeline.py', 'exporters.py', 'roles.py')]
 FILES += ['docs/UPDATE_%s.md' % VERSION, 'skills/README.md',
           'skills/kudio-pcs-authoring/SKILL.md',

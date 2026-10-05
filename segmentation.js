@@ -2,7 +2,7 @@ let uiOperations=0, groupEdit=null, groupsView='confirmed';
 const uiBusyButtons=new Map();
 const groupPalette=['#287f78','#547cc2','#ab6f3e','#8d60ac','#b25273','#4d8966','#89742b','#537f9b','#a55c49','#7470bb','#338d96','#846950'];
 function groupColor(g){if(/^#[0-9a-f]{6}$/i.test(g.color||''))return g.color;let hash=0;for(const c of g.id)hash=(hash*31+c.charCodeAt(0))>>>0;return groupPalette[hash%groupPalette.length]}
-function suggestionColor(g){let index=-1,chapter;for(const s of project.segments){if(s.chapter!==chapter){index++;chapter=s.chapter}if(s.id===g.start)return groupPalette[Math.max(0,index)%groupPalette.length]}return groupColor(g)}
+function suggestionColor(g){let index=-1,previous;for(const s of project.segments){const section=project.source_format==='pcs'?s.section:s.chapter;if(index<0||section!==previous){index++;previous=section}if(s.id===g.start)return groupPalette[Math.max(0,index)%groupPalette.length]}return groupColor(g)}
 function displayGroups(){if(!project)return [];return [...(project.groups||[]).map(g=>({...g,suggested:false})),...(project.suggestions||[]).map(g=>({...g,color:g.color||suggestionColor(g),suggested:true}))]}
 function segmentMembership(ss){const result=new Map(ss.map(s=>[s.id,[]])),index=new Map(ss.map((s,i)=>[s.id,i]));for(const g of displayGroups()){const first=index.get(g.start),last=index.get(g.end);if(first===undefined||last===undefined||first>last)continue;for(let i=first;i<=last;i++)result.get(ss[i].id).push(g)}return result}
 function effectiveGroups(groups){const confirmed=groups.filter(g=>!g.suggested);return confirmed.length?confirmed:groups}

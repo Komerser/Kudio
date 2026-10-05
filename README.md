@@ -2,9 +2,9 @@
 
 **从第一句话，到一整本有声书。**
 
-Kudio 1.6.3 是基于本地 GPT-SoVITS 的脚本与有声书创作工具。在配置、文本、推理三个工作区中完成角色管理、配音安排、逐段生成、试听与 WAV / SRT / KSON 导出。
+Kudio 1.6.4 是基于本地 GPT-SoVITS 的脚本与有声书创作工具。在配置、文本、推理三个工作区中完成角色管理、配音安排、逐段生成、试听与 WAV / SRT / KSON 导出。本版收敛协议与实现，保留五层流水线和已有项目兼容性。
 
-完整更新报告与运行逻辑见 [docs/UPDATE_1.6.3.md](docs/UPDATE_1.6.3.md)，正式 PCS / KSON 规范见 [docs/PCS_KSON.md](docs/PCS_KSON.md)。发布包附带 [PCS 编写技能及安装说明](skills/README.md)。
+本版变更与验证记录见 [docs/UPDATE_1.6.4.md](docs/UPDATE_1.6.4.md)，正式 PCS / KSON 规范与运行逻辑见 [docs/PCS_KSON.md](docs/PCS_KSON.md)。发布包附带 [PCS 编写技能及安装说明](skills/README.md)。
 
 ## 功能
 
@@ -17,7 +17,7 @@ Kudio 1.6.3 是基于本地 GPT-SoVITS 的脚本与有声书创作工具。在�
 - 角色模型逐段切换、片段独立参数与重新生成；绑定变更仅使受影响音频待生成。
 - 可指定模型与参考音频目录，扫描候选文件；现代 Windows 文件选择框按用途记住最近目录。
 - 连续试听，刷新生成进度时保留当前播放。
-- Estimated / Exact 时间轴、Page / Pause / Rate / Section 事件和 KSON 预览。
+- Estimated / Exact 时间轴、Page / Pause / Rate / Section / Voice 事件和 KSON 预览。
 - 整本与分组 WAV 导出，自动附带片段级 SRT 字幕和 KSON 时间轴；旧章节分组收纳于高级导出。
 - 按作品名组织文件，支持回收站恢复及确认后永久删除。
 
@@ -57,12 +57,14 @@ PCS（Paragraphs Control Script）是给人类和 AI 编写的简单控制脚本
 | Voice | `#[voice:male_elder]#` | 后续语音的声线标签，在文本页绑定角色；不直接引用角色名 |
 
 ```text
-#[p:1]#[section:intro]#长假结束，周末还要上班，这种安排是不是只有中国有？
-#[p:2]#这期我们从全年日历开始。#[pause:800]#先来看中国。
-#[p:3]#[rate:0.9]#这里有一个重要细节。
+#[p:1]#[section:intro]#[voice:narrator]#大家好。#[pause:800]#[p:2]#[rate:0.9]#下面进入第二部分。
 ```
 
-五种控制都构成硬边界，前后正文不会合并到同一次推理。Page、Rate、Section、Voice 持续生效；未指定 Rate 时沿用角色或片段语速。连续标签既支持上例共用 `#` 的写法，也支持完整相接的 `]##[`。`\#[p:1]#` 表示普通正文，推理文本恢复为 `#[p:1]#`；这是显式的文字转义。
+PCS 0.1 grammar 已冻结，只支持上表五种指令。Kudio 插入、格式化和示例统一使用 canonical 写法：`#[p:1]#[rate:0.9]#正文`，连续控制共用边界 `#`。Parser 保留双 `#` 边界的旧输入兼容。格式化由后端权威 Parser 定位合法控制接缝，只移除多余边界字符，不改正文、空白或转义；不自动格式化导入和保存的源稿，非法候选保持原稿不变。
+
+五种控制都构成硬边界，前后正文不会合并到同一次推理。Page、Rate、Section、Voice 持续生效；未指定 Rate 时沿用角色或片段语速。`\#[p:1]#` 表示普通正文，推理文本恢复为 `#[p:1]#`；这是显式的文字转义。示例中的 `narrator` 需在文本页绑定实际角色。
+
+TXT 的 `chapter` 保留自然章节识别及旧项目兼容；PCS 正式章节由 `section` 指令指定，片段展示、分组建议和 KSON 使用 `section`。PCS 内部可能保留旧 `chapter` 字段，它不是第二种 PCS 控制维度。
 
 日常操作在文本页编辑正文、预览片段与安排角色，推理页负责进度、试听、重做与导出。右侧流程按钮打开大弹窗，按需查看解析结构、推理计划与高级 JSON。点击控制标签或诊断可返回原文定位。“应用文本修改”才更改项目，打字期间保留旧音频；未应用修改、未保存角色安排或解析错误时禁止启动推理和导出。TXT 中的声线指令也会当作普通文字；只有 PCS 支持多角色控制。
 
@@ -87,6 +89,24 @@ PCS Source → Lexer / Parser / Validator → AST → Compiler → Execution Pla
 
 后端权威解析；前端不维护另一套 Parser。模块职责和正式格式规范见 [docs/PCS_KSON.md](docs/PCS_KSON.md)。
 
+**PCS is authored. AST is parsed. Execution Plan is compiled. Timeline is measured. KSON is exported.**
+
+**PCS 用来写，AST 用来解析，Execution Plan 用来执行，Timeline 用来计时，KSON 用来交换。**
+
+| 层次 | 权威关系与职责 |
+| --- | --- |
+| PCS / `source_text` | 人与 AI 编写的源语言；源稿是唯一正文权威 |
+| AST / diagnostics | 有序 TextNode / ControlNode 列表及诊断；从源稿派生的缓存 |
+| Execution Plan / segments | 编译快照；唯一执行顺序和各段语音状态，保留有意冗余 |
+| Timeline | 由计划和真实 WAV 建立的整数 PCM 帧时钟；缺音频时为估算 |
+| KSON | 对外机器可读时间轴；0.1 顶层及 speech/role 字段布局保持兼容 |
+
+`kudio/source.py` 提供唯一 `source_hash()`：对原始 UTF-8 源稿计算 SHA-256，包含空白、CRLF 和控制标签，与 1.6.3 算法一致。Event ID 是 `evt_` 加确定性 SHA-256，由源码哈希、跨度、事件类型及语义值确定；相同源稿重新编译保持稳定。Segment ID 继续依照语义与合成指纹复用，以保留 WAV、状态和音频版本。旧 Event ID 只在显式重新编译后更新。
+
+schema 2 继续保存 AST / diagnostics，并记录解析缓存身份；旧缓存读取时刷新。编译源码哈希失配、解析错误或事件快照不一致时，不能推理或导出，也不展示旧计划的 Exact Timeline / KSON；应用源稿重新编译后恢复。缓存刷新不会偷偷替换计划、片段或 WAV。
+
+Page 等控制在源码边界立即发生，隐式 gap 在下一段 Speech 前插入。例如 `A#[p:2]#B` 中，A 在 100ms 结束、gap 为 300ms 时，Page 发生于 100ms，B 始于 400ms。WAV / SRT / KSON 共同消费同一个 Timeline。
+
 ## 构建发布包
 
 使用 Python 3.9 或以上运行：
@@ -106,6 +126,7 @@ python test_app.py
 python test_pcs.py
 python test_timeline.py
 python test_pipeline.py
+python test_contracts.py
 node test_switching.cjs
 node test_pcs.cjs
 node test_rebuild.cjs
@@ -113,6 +134,8 @@ node test_i18n.cjs
 ```
 
 后端仅使用 Python 标准库。前端为原生 HTML/CSS/JavaScript，无需 npm 安装。混合格式 WAV 导出使用引擎自带的 `runtime/ffmpeg.exe`。
+
+`test_contracts.py` 额外检查跨层兼容约定，包括旧 Event ID、源码缓存失效、事件与 Speech 的交织顺序，以及 WAV / SRT / KSON 的统一帧时间。
 
 界面翻译源文件为 `i18n-static.json`、`i18n-core.json`、`i18n-rebuild.json` 与 `i18n-studio.json`。修改后运行 `python build_i18n.py` 生成离线字典；构建发布包时也会自动生成并检查插值参数。语言选择保存于浏览器，不影响正文和配音设置。
 

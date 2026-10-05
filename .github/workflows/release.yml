@@ -31,7 +31,7 @@ jobs:
           if ($env:GITHUB_REF_NAME -ne "v$version") { throw 'Tag and VERSION.txt must match.' }
           if (-not (Test-Path -LiteralPath "docs/UPDATE_$version.md")) { throw 'Version report is missing.' }
       - name: Backend regressions
-        run: python -m unittest test_app test_pcs test_timeline test_pipeline
+        run: python -B -m unittest test_app test_pcs test_timeline test_pipeline test_contracts
       - name: Frontend regressions
         shell: pwsh
         run: |

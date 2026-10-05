@@ -20,6 +20,11 @@ PCS v0.1 intentionally keeps values simple. A parser should first identify compl
 
 Whitespace immediately outside a marker remains normal narration whitespace.
 
+The five-command PCS 0.1 grammar is frozen. Generated and repaired adjacent
+controls use a shared boundary hash, for example
+`#[p:1]#[section:intro]#[voice:narrator]#`. Kudio accepts older double-hash
+input for compatibility, but authoring output uses the canonical form.
+
 ## 2. Supported controls
 
 ### `p`

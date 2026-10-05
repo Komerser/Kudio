@@ -31,13 +31,14 @@ const fixture=(id,page=1)=>{
 };
 const projects=new Map([['A',fixture('A')],['B',fixture('B',2)]]);
 const parseFixture=owner=>({ast:projects.get(owner).project.ast,diagnostics:[],valid:true,stats:{},source_format:'pcs'});
-let nextParse=null,nextCompile=null,nextApply=null;
+let nextParse=null,nextCompile=null,nextApply=null,nextFormat=null;
 context.request=async(path,data)=>{
  requests.push({path,data});
  if(path.startsWith('project?id='))return structuredClone(projects.get(path.split('=')[1]));
  if(path==='state')return {projects:[...projects.values()].map(({project:p})=>({id:p.id,title:p.title,count:p.segments.length,done:1})),trash:[],active:null};
  if(path==='pcs/parse'){const response=nextParse||(data.source_format==='txt'?{ast:data.text?[{type:'text',text:data.text,source_start:0,source_end:Array.from(data.text).length}]:[],diagnostics:[],valid:true,stats:{},source_format:'txt'}:parseFixture(run('project.id')));nextParse=null;return await response}
  if(path==='pcs/compile'){const response=nextCompile||{...parseFixture('A'),segments:projects.get('A').project.segments,execution_plan:projects.get('A').project.execution_plan};nextCompile=null;return await response}
+ if(path==='pcs/format'){const response=nextFormat||{text:data.text,offsets:data.offsets};nextFormat=null;return await response}
  if(path==='project/source'){const response=nextApply||structuredClone(projects.get(data.id));nextApply=null;return await response}
  if(path==='export-kson')return {exports:[{file:'A.kson'}]};
  throw Error('Unexpected API '+path);
@@ -70,7 +71,7 @@ run('api=request');
  const oldCount=requests.length;await element('start').onclick();assert.equal(requests.length,oldCount);
 
  // Inserting at the textarea cursor preserves the raw source as the authority.
- element('source').value='AB';element('source').setSelectionRange(1,1);element('controlCommand').value='pause';element('controlValue').value='800';element('insertControl').onclick();assert.equal(element('source').value,'A#[pause:800]#B');assert.equal(element('source').selectionStart,14);
+ element('source').value='AB';run('scriptSourceChanged()');element('source').setSelectionRange(1,1);element('controlCommand').value='pause';element('controlValue').value='800';await element('insertControl').onclick();assert.equal(element('source').value,'A#[pause:800]#B');assert.equal(element('source').selectionStart,14);
  console.log('PASS: parser errors block compile/generation/export, diagnostic Unicode spans and cursor insertion');
 
  // Neither polling nor navigation may overwrite A's uncommitted source draft.
@@ -101,7 +102,7 @@ run('api=request');
  const literal='#[p:1]#正文。\\#[pause:800]#继续。#[unknown:x]#';
  element('file').files=[{name:'literal.TXT',size:Buffer.byteLength(literal),arrayBuffer:async()=>new TextEncoder().encode(literal).buffer}];await element('file').onchange();
  assert.equal(element('sourceFormat').value,'txt');assert.equal(element('source').value,literal);assert.equal(requests.at(-1).data.source_format,'txt');assert.equal(requests.at(-1).data.text,literal);assert.equal(textOf(element('scriptVisual')).includes('PPT ·'),false);assert.equal(textOf(element('scriptVisual')).includes('PAUSE ·'),false);assert.equal(element('scriptVisual').children[0].textContent,literal);assert.equal(element('astNodes').children.length,1);assert.equal(element('parserDiagnostics').children.length,0);assert.match(element('visualMode').textContent,/正文预览/);
- element('source').setSelectionRange(0,0);element('insertControl').onclick();assert.equal(element('source').value,literal);
+ element('source').setSelectionRange(0,0);const literalRequests=requests.length;await element('insertControl').onclick();await element('formatScript').onclick();assert.equal(element('source').value,literal);assert.equal(requests.length,literalRequests);
  element('file').files=[{name:'script.PCS',size:Buffer.byteLength(sourceBeforeFormat),arrayBuffer:async()=>new TextEncoder().encode(sourceBeforeFormat).buffer}];await element('file').onchange();
  assert.equal(element('sourceFormat').value,'pcs');assert.equal(requests.at(-1).data.source_format,'pcs');assert.equal(element('scriptToolbar').classes.has('hidden'),false);assert.equal(element('insertControl').disabled,false);assert.equal(element('parseScript').textContent,'解析 PCS');assert.match(textOf(element('scriptVisual')),/PPT · 1/);
  console.log('PASS: explicit TXT/PCS menu, extension-based imports, literal TXT preview, format invalidation and PCS-only toolbar');
@@ -123,6 +124,42 @@ run('api=request');
  assert.equal(element('source').value,'本地草稿保留');assert.equal(element('sourceFormat').value,'pcs');assert.equal(Number(element('limit').value),80);assert.equal(run('scriptIsDirty()'),true);
  await run("load('B')");await run("load('R')");assert.equal(element('source').value,'本地草稿保留');assert.equal(element('sourceFormat').value,'pcs');assert.equal(Number(element('limit').value),80);assert.equal(element('start').disabled,true);
  console.log('PASS: clean cache refreshes remote format/limit, stale parse is rejected, local drafts remain protected');
+
+ // Five control types are supplied by the authoritative backend AST/plan.
+ const voiceProject=fixture('V'),vp=voiceProject.project;
+ const voiceTag='#[voice:narrator]#',voiceStart=vp.source_text.indexOf('正文')-1,voiceEnd=voiceStart+voiceTag.length,voiceDelta=voiceTag.length-1;vp.source_text=vp.source_text.slice(0,voiceStart)+voiceTag+vp.source_text.slice(voiceStart+1);
+ for(const n of vp.ast.slice(3)){n.source_start+=voiceDelta;n.source_end+=voiceDelta}for(const n of vp.execution_plan.slice(3)){if(n.source_start!==undefined){n.source_start+=voiceDelta;n.source_end+=voiceDelta}}
+ vp.ast.splice(3,0,{type:'control',command:'voice',value:'narrator',valid:true,source_start:voiceStart,source_end:voiceEnd});
+ vp.execution_plan.splice(3,0,{kind:'event',type:'voice',label:'narrator',source_start:voiceStart,source_end:voiceEnd});
+ vp.timeline.events.splice(3,0,{type:'voice',label:'narrator',time_ms:0,source_start:voiceStart,source_end:voiceEnd});vp.kson.events=vp.timeline.events;vp.segments.forEach(s=>{s.voice_label='narrator'});
+ projects.set('V',voiceProject);await run("load('V')");
+ assert.match(textOf(element('scriptVisual')),/VOICE · narrator/);assert.match(textOf(element('astNodes')),/VOICE · narrator/);assert.match(textOf(element('executionPlan')),/VOICE · narrator/);assert.match(textOf(element('timelineEvents')),/VOICE · narrator/);assert.match(element('parserSummary').textContent,/1 Page · 1 Pause · 1 Rate · 1 Section · 1 Voice/);
+ element('insertVoice').onclick();assert.equal(element('controlCommand').value,'voice');assert.equal(element('controlValue').value,'narrator');
+ assert.match(html,/<option value="voice">Voice · 声线名称<\/option>/);
+ console.log('PASS: Voice chips, AST, ordered plan, timeline, five-type summary and narrator toolbar default');
+
+ // Canonicalization comes only from the backend, including Unicode offsets.
+ const insertionOriginal='😀#[p:1]#正文',canonical='😀#[p:1]#[voice:narrator]#正文';element('source').value=insertionOriginal;run('scriptSourceChanged()');element('source').setSelectionRange(9,9);
+ const canonicalCursor=Array.from(canonical.slice(0,canonical.indexOf('正文'))).length;nextFormat={text:canonical,offsets:[canonicalCursor,canonicalCursor]};await element('insertControl').onclick();
+ assert.equal(requests.at(-1).path,'pcs/format');assert.equal(requests.at(-1).data.text,'😀#[p:1]##[voice:narrator]#正文');assert.deepEqual(Array.from(requests.at(-1).data.offsets),[canonicalCursor+1,canonicalCursor+1]);assert.equal(element('source').value,canonical);assert.equal(element('source').selectionStart,canonical.indexOf('正文'));assert.equal(element('source').selectionEnd,canonical.indexOf('正文'));
+ const oldStyle='😀#[p:1]##[rate:0.9]#正文\r\n\\#[voice:x]#';const formatted='😀#[p:1]#[rate:0.9]#正文\r\n\\#[voice:x]#';element('source').value=oldStyle;run('scriptSourceChanged()');element('source').setSelectionRange(4,oldStyle.length);
+ nextFormat={text:formatted,offsets:[3,Array.from(formatted).length]};await element('formatScript').onclick();assert.equal(element('source').value,formatted);assert.equal(element('source').selectionStart,4);assert.equal(element('source').selectionEnd,formatted.length);assert.equal(element('toast').textContent,'PCS 格式已规范，正文保持不变');
+ const failedOriginal='😀#[unknown:x]#原稿';element('source').value=failedOriginal;run('scriptSourceChanged()');element('source').setSelectionRange(3,8);nextFormat=Promise.reject(Error('未知 PCS 指令'));await element('formatScript').onclick();assert.equal(element('source').value,failedOriginal);assert.equal(element('source').selectionStart,3);assert.equal(element('source').selectionEnd,8);assert.match(element('toast').textContent,/原稿未修改/);
+ console.log('PASS: backend-only canonical insertion/formatting, Unicode cursor mapping, literal preservation and atomic failure');
+
+ // Formatting replies never paint over a newer edit, navigation or clean-cache replacement.
+ element('source').value=oldStyle;run('scriptSourceChanged()');let finishFormat;nextFormat=new Promise(resolve=>finishFormat=resolve);const pendingFormat=element('formatScript').onclick();assert.equal(element('source').disabled,true);assert.equal(element('insertVoice').disabled,true);
+ element('source').value='新草稿';run('scriptSourceChanged()');finishFormat({text:formatted,offsets:[0,0]});await pendingFormat;assert.equal(element('source').value,'新草稿');assert.equal(run('scriptDraft().formatBusy'),false);
+ element('source').value=oldStyle;run('scriptSourceChanged()');nextFormat=new Promise(resolve=>finishFormat=resolve);const navigatedFormat=element('formatScript').onclick();await run("load('B')");finishFormat({text:formatted,offsets:[0,0]});await navigatedFormat;assert.equal(element('source').value,projects.get('B').project.source_text);await run("load('V')");assert.equal(element('source').value,oldStyle);
+ const cleanFormat=fixture('F');projects.set('F',cleanFormat);await run("load('F')");nextFormat=new Promise(resolve=>finishFormat=resolve);const replacedFormat=element('formatScript').onclick();cleanFormat.project.limit=240;await run('refresh()');finishFormat({text:'陈旧格式结果',offsets:[0,0]});await replacedFormat;assert.equal(element('source').value,cleanFormat.project.source_text);assert.equal(Number(element('limit').value),240);
+ console.log('PASS: formatting owner/revision/navigation/cache races preserve the latest draft and selection');
+
+ // An invalidated compilation hides old exact timing while preserving audio.
+ const staleSnapshot=fixture('S');staleSnapshot.project.timeline.timing_status='exact';projects.set('S',staleSnapshot);await run("load('S')");assert.equal(element('timelineEvents').children.length,4);await run("playSegment('S1')");const stalePlayerUrl=player.src,stalePlayerPauses=player.pauseCount;
+ const staleUpdated=structuredClone(staleSnapshot);staleUpdated.project.compilation_stale=true;staleUpdated.project.compilation_error='编译结果与源稿不一致，请重新编译';staleUpdated.project.ast=[{type:'text',text:'权威源稿',source_start:0,source_end:4}];staleUpdated.project.timeline=null;staleUpdated.project.kson=null;projects.set('S',staleUpdated);await run('refresh()');
+ assert.equal(player.src,stalePlayerUrl);assert.equal(player.pauseCount,stalePlayerPauses);assert.equal(element('timelineEvents').children.length,0);assert.equal(element('timelineStrip').children.length,0);assert.equal(element('ksonJson').textContent,'');assert.equal(element('executionPlan').children.length,0);assert.match(element('scriptState').textContent,/需重新编译/);assert.equal(run('timeEntries.every(s=>s.timeline.start===0&&s.timeline.end===0&&s.timeline.estimated)'),true);assert.equal(run('scriptIsDirty()'),true);assert.equal(run('scriptDraft().dirty'),false);assert.equal(run('scriptDraft().parse.ast[0].text'),'权威源稿');assert.equal(element('start').disabled,true);assert.equal(element('exportKson').disabled,true);assert.equal(element('applyScript').disabled,false);
+ nextApply=staleSnapshot;await run('applyScript()');assert.equal(run('scriptIsDirty()'),false);assert.equal(run('project.segments[0].status'),'done');assert.equal(element('timelineEvents').children.length,4);
+ console.log('PASS: stale compilation clears old timelines/KSON, refreshes AST, preserves playback/WAV and allows unchanged-source recompilation');
 
  // Legacy projects are inspectable without silently replacing their old audio.
  const legacy=fixture('L');legacy.project.source_format='legacy';delete legacy.project.ast;delete legacy.project.source_text;projects.set('L',legacy);await run("load('L')");assert.equal(element('source').value,legacy.project.segments.map(s=>s.text).join('\n\n'));assert.match(element('sourceNotice').textContent,/显式/);assert.equal(element('editText').readOnly,true);run("openEditor('L1')");assert.equal(element('editText').readOnly,false);
